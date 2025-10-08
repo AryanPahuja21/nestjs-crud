@@ -1,25 +1,34 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
-import { Request, Response } from 'express';
-
-@Catch()
-export class HttpExceptionFilter implements ExceptionFilter {
-  catch(exception: unknown, host: ArgumentsHost) {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
-
-    const status =
-      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
-
-    const message =
-      exception instanceof HttpException ? exception.getResponse() : 'Internal server error';
-
-    response.status(status).json({
-      success: false,
-      timestamp: new Date().toISOString(),
-      path: request.url,
-      statusCode: status,
-      message,
-    });
+import {
+    ExceptionFilter,
+    Catch,
+    ArgumentsHost,
+    HttpException,
+    HttpStatus,
+  } from '@nestjs/common';
+  import { Response } from 'express';
+  import { buildErrorResponse } from '../../utils/response.util';
+  
+  @Catch()
+  export class HttpExceptionFilter implements ExceptionFilter {
+    catch(exception: unknown, host: ArgumentsHost) {
+      const ctx = host.switchToHttp();
+      const response = ctx.getResponse<Response>();
+  
+      let status = HttpStatus.INTERNAL_SERVER_ERROR;
+      let message = 'Internal server error';
+  
+      if (exception instanceof HttpException) {
+        status = exception.getStatus();
+        const res: any = exception.getResponse();
+        message =
+          typeof res === 'string'
+            ? res
+            : res.message || JSON.stringify(res);
+      } else if (exception instanceof Error) {
+        message = exception.message;
+      }
+  
+      response.status(status).json(buildErrorResponse(message, status));
+    }
   }
-}
+  
