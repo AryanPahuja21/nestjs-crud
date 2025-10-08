@@ -35,10 +35,6 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# Husky Git Hooks
-!.husky/
-!.husky/**
-
 # dotenv environment variable files
 .env
 .env.development.local
