@@ -66,6 +66,12 @@
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
   },
+  "lint-staged": {
+    "*.{ts,js,tsx,jsx,json,md}": [
+      "prettier --write",
+      "eslint --fix"
+    ]
+  },
   "jest": {
     "moduleFileExtensions": [
       "js",
