@@ -13,15 +13,21 @@ import { User } from './entities/user.entity';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (config: ConfigService) => {
-        const mysql = config.get('database.mysql');
+      useFactory: (config: ConfigService) => {
+        const mysql = config.get<{
+          host: string;
+          port: number;
+          username: string;
+          password: string;
+          database: string;
+        }>('database.mysql');
         return {
-          type: 'mysql',
-          host: mysql.host,
-          port: mysql.port,
-          username: mysql.username,
-          password: mysql.password,
-          database: mysql.database,
+          type: 'mysql' as const,
+          host: mysql?.host,
+          port: mysql?.port,
+          username: mysql?.username,
+          password: mysql?.password,
+          database: mysql?.database,
           entities: [User],
           synchronize: true,
         };
@@ -32,9 +38,9 @@ import { User } from './entities/user.entity';
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (config: ConfigService) => {
-        const mongodb = config.get('database.mongodb');
-        return { uri: mongodb.uri };
+      useFactory: (config: ConfigService) => {
+        const mongodb = config.get<{ uri: string }>('database.mongodb');
+        return { uri: mongodb?.uri || '' };
       },
     }),
   ],
