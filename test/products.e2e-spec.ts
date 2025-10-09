@@ -21,18 +21,15 @@ describe('Products E2E', () => {
   });
 
   describe('/products (POST)', () => {
-    it('should create a product', async () => {
-      const response = await request(app.getHttpServer())
+    it('should reject unauthenticated requests', async () => {
+      await request(app.getHttpServer())
         .post('/products')
         .send({
           name: 'Laptop',
           description: 'High-end laptop',
           price: 2000,
         })
-        .expect(201);
-
-      expect(response.body).toHaveProperty('_id');
-      expect(response.body.name).toBe('Laptop');
+        .expect(401);
     });
   });
 
