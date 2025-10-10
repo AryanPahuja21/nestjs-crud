@@ -1,7 +1,8 @@
-import { Controller, Post, Body, UseFilters } from '@nestjs/common';
+import { Controller, Post, Body, UseFilters, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ApiTags, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { HttpExceptionFilter } from '../../common/filters/http-exception.filter';
+import { RateLimitGuard, RateLimit } from '../../common/guards/rate-limit.guard';
 import { LoginResponse } from './interfaces/auth-responses.interface';
 import { buildSuccessResponse } from '../../utils/response.util';
 
@@ -17,6 +18,12 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Maximum 5 login attempts per 15 minutes
+    message: 'Too many login attempts. Please try again later.',
+  })
   @ApiBody({
     schema: {
       type: 'object',
@@ -40,6 +47,19 @@ export class AuthController {
             access_token: { type: 'string' },
           },
         },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Rate limit exceeded',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        message: { type: 'string', example: 'Too many login attempts. Please try again later.' },
+        error: { type: 'string', example: 'Rate Limit Exceeded' },
+        retryAfter: { type: 'number', example: 300 },
       },
     },
   })

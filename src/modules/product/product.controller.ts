@@ -8,7 +8,9 @@ import {
   Delete,
   UseGuards,
   UseFilters,
+  UseInterceptors,
 } from '@nestjs/common';
+import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -18,6 +20,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { HttpExceptionFilter } from '../../common/filters/http-exception.filter';
+import { RedisService } from '../redis/redis.service';
 import {
   ProductListResponse,
   ProductItemResponse,
@@ -26,13 +29,17 @@ import {
   ProductDeleteResponse,
 } from './interfaces/product-responses.interface';
 import { buildSuccessResponse, buildDeleteResponse } from '../../utils/response.util';
+import { Product } from '../../database/schemas/product.schema';
 
 @ApiTags('Products')
 @ApiBearerAuth()
 @Controller('products')
 @UseFilters(HttpExceptionFilter)
 export class ProductController {
-  constructor(private readonly productService: ProductService) {}
+  constructor(
+    private readonly productService: ProductService,
+    private readonly redisService: RedisService,
+  ) {}
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.MODERATOR)
@@ -52,10 +59,17 @@ export class ProductController {
   })
   async create(@Body() dto: CreateProductDto): Promise<ProductCreateResponse> {
     const product = await this.productService.create(dto);
+
+    // Invalidate products list cache when new product is created
+    await this.redisService.del('products:all');
+
     return buildSuccessResponse(product);
   }
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(CacheInterceptor)
+  @CacheKey('products:all')
+  @CacheTTL(600) // 10 minutes - products change less frequently
   @Get()
   @ApiOperation({ summary: 'Get all products' })
   @ApiResponse({
@@ -76,6 +90,8 @@ export class ProductController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(900) // 15 minutes - individual products cached longer
   @Get(':id')
   @ApiOperation({ summary: 'Get product by ID' })
   @ApiResponse({
@@ -91,7 +107,19 @@ export class ProductController {
     },
   })
   async findOne(@Param('id') id: string): Promise<ProductItemResponse> {
+    const cacheKey = `products:${id}`;
+
+    // Try to get from cache first
+    const cachedProduct = await this.redisService.get<Product>(cacheKey);
+    if (cachedProduct) {
+      return buildSuccessResponse(cachedProduct);
+    }
+
     const product = await this.productService.findOne(id);
+
+    // Cache the product data
+    await this.redisService.set(cacheKey, product, 900);
+
     return buildSuccessResponse(product);
   }
 
@@ -116,6 +144,11 @@ export class ProductController {
     @Body() dto: UpdateProductDto,
   ): Promise<ProductUpdateResponse> {
     const updatedProduct = await this.productService.update(id, dto);
+
+    // Invalidate related caches
+    await this.redisService.del(`products:${id}`);
+    await this.redisService.del('products:all');
+
     return buildSuccessResponse(updatedProduct);
   }
 
@@ -143,6 +176,11 @@ export class ProductController {
   })
   async remove(@Param('id') id: string): Promise<ProductDeleteResponse> {
     await this.productService.remove(id);
+
+    // Invalidate related caches
+    await this.redisService.del(`products:${id}`);
+    await this.redisService.del('products:all');
+
     return buildDeleteResponse('Product deleted successfully', id);
   }
 }

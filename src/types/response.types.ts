@@ -8,6 +8,8 @@
  * - Use `type` for utility types and transformations
  */
 
+import { HttpStatus } from '@nestjs/common';
+
 // Base response interface - can be extended by specific responses
 export interface BaseApiResponse {
   success: boolean;
@@ -42,7 +44,7 @@ export type DeleteResponse = ApiSuccessResponse<{
 }>;
 
 // Common HTTP status codes type
-export type HttpStatusCode = 200 | 201 | 204 | 400 | 401 | 403 | 404 | 409 | 500;
+export type HttpStatusCode = HttpStatus | number;
 
 // Generic list response type
 export type ListResponse<T> = ApiSuccessResponse<T[]>;
