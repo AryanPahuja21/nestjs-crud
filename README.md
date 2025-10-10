@@ -678,4 +678,4 @@ For questions and support:
 
 ---
 
-**Happy Coding!** 🚀 Built with ❤️ using NestJS, Redis, and TypeScript.
+**Happy Coding!** 🚀 Built with ❤️ by Aryan Pahuja.
