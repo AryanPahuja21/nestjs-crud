@@ -1,266 +1,212 @@
-# 🚀 NestJS CRUD Application
+# NestJS CRUD Application with Redis Caching
 
-A modern, full-featured CRUD application built with NestJS, featuring dual-database architecture, JWT authentication, and role-based access control.
+A comprehensive, production-ready CRUD application built with NestJS, featuring user management, product management, JWT authentication, role-based access control (RBAC), Redis caching, and rate limiting.
 
-## 📋 Table of Contents
-
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Getting Started](#-getting-started)
-- [Environment Variables](#-environment-variables)
-- [API Documentation](#-api-documentation)
-- [Authentication & Authorization](#-authentication--authorization)
-- [Database Schema](#-database-schema)
-- [Project Structure](#-project-structure)
-- [Testing](#-testing)
-- [Contributing](#-contributing)
-
-## ✨ Features
+## 🚀 Features
 
 ### Core Features
 
-- **User Management** - Complete CRUD operations for users
-- **Product Management** - Full product lifecycle management
-- **JWT Authentication** - Secure token-based authentication
-- **Role-Based Access Control (RBAC)** - Three-tier role system (User, Moderator, Admin)
-- **Dual Database Architecture** - MySQL for users, MongoDB for products
-- **Input Validation** - Comprehensive data validation with class-validator
-- **Error Handling** - Centralized exception handling with custom exceptions
-- **API Documentation** - Interactive Swagger/OpenAPI documentation
-- **Response Standardization** - Consistent API response format
+- **User Management**: Complete CRUD operations for users with JWT token generation
+- **Product Management**: Full product lifecycle management with caching
+- **JWT Authentication**: Secure token-based authentication with role information
+- **Role-Based Access Control (RBAC)**: Fine-grained permission system
+- **Redis Caching**: High-performance caching for improved API response times
+- **Rate Limiting**: Redis-based rate limiting for security and DDoS protection
+- **API Documentation**: Auto-generated Swagger/OpenAPI documentation
+- **Data Validation**: Comprehensive input validation with class-validator
+- **Error Handling**: Centralized exception handling with custom filters
+- **Database Support**: Dual database architecture (MySQL + MongoDB)
 
-### Development Features
+### Performance Features
 
-- **Docker Support** - Full containerization with Docker Compose
-- **Code Quality** - ESLint, Prettier, and Husky pre-commit hooks
-- **Testing** - Unit and E2E tests with Jest
-- **Type Safety** - Full TypeScript implementation
-- **Hot Reload** - Development server with auto-reload
+- **Smart Caching**: Intelligent cache invalidation on data changes
+- **Cache TTL**: Configurable time-to-live for different endpoints
+- **Rate Limiting**: Per-user and per-IP rate limiting
+- **Connection Pooling**: Optimized database connections
+
+### Security Features
+
+- **Password Hashing**: Secure bcrypt password encryption
+- **JWT Tokens**: Stateless authentication with role-based claims
+- **Role-Based Guards**: Protect endpoints based on user roles
+- **Rate Limiting**: Prevent brute force attacks and abuse
+- **Input Sanitization**: Prevent injection attacks with validation pipes
+- **CORS Protection**: Configurable cross-origin resource sharing
+
+### Architecture Features
+
+- **Modular Design**: Clean separation of concerns
+- **TypeScript**: Full type safety and modern JavaScript features
+- **Docker Support**: Containerized development and deployment
+- **Environment Configuration**: Flexible config management
+- **Standardized Responses**: Consistent API response format with proper TypeScript types
+- **Global Exception Handling**: Centralized error management
 
 ## 🛠 Tech Stack
 
-### Backend Framework
+- **Framework**: NestJS (Node.js)
+- **Language**: TypeScript
+- **Databases**:
+  - MySQL (Users) - with TypeORM
+  - MongoDB (Products) - with Mongoose
+  - Redis (Caching & Rate Limiting)
+- **Authentication**: JWT with Passport
+- **Caching**: Redis with @nestjs/cache-manager
+- **Rate Limiting**: Redis-based throttling
+- **Validation**: class-validator, class-transformer
+- **Documentation**: Swagger/OpenAPI
+- **Containerization**: Docker & Docker Compose
+- **Password Encryption**: bcrypt
+- **Package Manager**: npm
 
-- **NestJS** - Progressive Node.js framework
-- **TypeScript** - Type-safe JavaScript
-- **Node.js** - Runtime environment
+## 📋 Prerequisites
 
-### Databases
+- Node.js (v18 or higher)
+- Docker and Docker Compose
+- npm (comes with Node.js)
 
-- **MySQL** (TypeORM) - User data and authentication
-- **MongoDB** (Mongoose) - Product catalog and management
+## 🚀 Quick Start
 
-### Authentication & Security
+### 1. Clone the Repository
 
-- **JWT** - JSON Web Tokens for authentication
-- **bcrypt** - Password hashing
-- **Passport** - Authentication middleware
-- **Class Validator** - Input validation
+```bash
+git clone <repository-url>
+cd nestjs-crud
+```
 
-### Documentation & Testing
+### 2. Install Dependencies
 
-- **Swagger/OpenAPI** - API documentation
-- **Jest** - Testing framework
-- **Supertest** - HTTP testing
+```bash
+npm install
+```
 
-### Development Tools
+### 3. Start All Services with Docker
 
-- **Docker & Docker Compose** - Containerization
-- **ESLint** - Code linting
-- **Prettier** - Code formatting
-- **Husky** - Git hooks
-- **lint-staged** - Staged file linting
+```bash
+# Start all services (MySQL, MongoDB, Redis, Application)
+docker-compose up -d
 
-## 🚀 Getting Started
+# View logs
+docker-compose logs -f app
+```
 
-### Prerequisites
+### 4. Alternative: Start Services Separately
 
-- **Node.js** (v18+ recommended)
-- **Docker & Docker Compose** (for containerized setup)
-- **Git**
+```bash
+# Start databases and Redis only
+docker-compose up -d mysql mongodb redis
 
-### Installation Options
+# Start application in development mode
+npm run start:dev
+```
 
-#### Option 1: Docker Setup (Recommended)
+### 5. Access the Application
 
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/AryanPahuja21/nestjs-crud.git
-   cd nestjs-crud
-   ```
-
-2. **Configure environment**
-
-   ```bash
-   cp docker.env .env
-   # Edit .env file with your preferred settings
-   ```
-
-3. **Start with Docker Compose**
-
-   ```bash
-   docker-compose up -d
-   ```
-
-4. **Access the application**
-   - API: http://localhost:3000
-   - Swagger Docs: http://localhost:3000/api/docs
-
-#### Option 2: Local Development Setup
-
-1. **Clone and install dependencies**
-
-   ```bash
-   git clone https://github.com/AryanPahuja21/nestjs-crud.git
-   cd nestjs-crud
-   npm install
-   ```
-
-2. **Set up databases**
-   - Install and start MySQL (port 3306)
-   - Install and start MongoDB (port 27017)
-
-3. **Configure environment**
-
-   ```bash
-   cp .env.example .env
-   # Configure your database connections in .env
-   ```
-
-4. **Run the application**
-
-   ```bash
-   # Development
-   npm run start:dev
-
-   # Production
-   npm run build
-   npm run start:prod
-   ```
+- **API**: http://localhost:3000
+- **Swagger Documentation**: http://localhost:3000/api/docs
+- **Health Check**: http://localhost:3000 (should return "Hello World!")
 
 ## 🔧 Environment Variables
 
-### Database Configuration
+The application uses environment variables for configuration. When using Docker Compose, these are set automatically.
+
+### Docker Environment (docker-compose.yml)
+
+```yaml
+# Database Configuration
+MYSQL_HOST: mysql
+MYSQL_PORT: 3306
+MYSQL_USER: crud_user
+MYSQL_PASS: crud_password
+MYSQL_DB: user_db
+
+MONGO_URI: mongodb://root:rootpassword@mongodb:27017/product_db?authSource=admin
+
+# Redis Configuration
+REDIS_HOST: redis
+REDIS_PORT: 6379
+REDIS_PASSWORD: redispassword
+REDIS_DB: 0
+REDIS_KEY_PREFIX: crud-app:
+REDIS_TTL: 300
+
+# Application Configuration
+PORT: 3000
+NODE_ENV: production
+JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
+```
+
+### Local Development (.env)
 
 ```env
+# Application
+PORT=3000
+NODE_ENV=development
+
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+
 # MySQL Configuration (Users)
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
 MYSQL_USER=crud_user
 MYSQL_PASS=crud_password
 MYSQL_DB=user_db
-MYSQL_ROOT_PASSWORD=rootpassword
 
 # MongoDB Configuration (Products)
-MONGO_URI=mongodb://localhost:27017/product_db
+MONGO_URI=mongodb://root:rootpassword@localhost:27017/product_db?authSource=admin
 
-# Application
-PORT=3000
-NODE_ENV=development
-
-# JWT Configuration
-JWT_SECRET=your_super_secret_jwt_key_here
-JWT_EXPIRY=1h
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=redispassword
+REDIS_DB=0
+REDIS_KEY_PREFIX=crud-app:
+REDIS_TTL=300
 ```
 
-## 📚 API Documentation
+## 🏗 Project Structure
 
-### Interactive Documentation
-
-Access the full API documentation at: **http://localhost:3000/api/docs**
-
-### Quick API Overview
-
-#### Authentication Endpoints
-
-```bash
-POST /auth/login          # User login
 ```
-
-#### User Management
-
-```bash
-POST   /users             # Create user (returns JWT)
-GET    /users             # Get all users (Admin only)
-GET    /users/:id         # Get user by ID (Admin only)
-PATCH  /users/:id         # Update user (Admin only)
-DELETE /users/:id         # Delete user (Admin only)
-```
-
-#### Product Management
-
-```bash
-POST   /products          # Create product (Admin/Moderator)
-GET    /products          # Get all products (Authenticated users)
-GET    /products/:id      # Get product by ID (Authenticated users)
-PATCH  /products/:id      # Update product (Admin/Moderator)
-DELETE /products/:id      # Delete product (Admin only)
-```
-
-### Sample API Calls
-
-#### Register a New User
-
-```bash
-curl -X POST http://localhost:3000/users \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "John Doe",
-    "email": "john@example.com",
-    "password": "securepassword",
-    "role": "user"
-  }'
-```
-
-#### Login
-
-```bash
-curl -X POST http://localhost:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "john@example.com",
-    "password": "securepassword"
-  }'
-```
-
-#### Create a Product (with JWT token)
-
-```bash
-curl -X POST http://localhost:3000/products \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{
-    "name": "Laptop",
-    "description": "High-performance laptop",
-    "price": 1200,
-    "category": "Electronics"
-  }'
+src/
+├── common/                 # Shared utilities
+│   ├── decorators/         # Custom decorators (@Roles)
+│   ├── enums/             # Application enums (Role)
+│   ├── exceptions/        # Custom exceptions
+│   ├── filters/           # Exception filters
+│   ├── guards/            # Auth & rate limiting guards
+│   └── interceptors/      # Response interceptors
+├── config/                # Configuration files
+│   ├── app.config.ts      # Application config
+│   ├── database.config.ts # Database config
+│   └── redis.config.ts    # Redis config
+├── database/              # Database configuration
+│   ├── entities/          # TypeORM entities (MySQL)
+│   └── schemas/           # Mongoose schemas (MongoDB)
+├── modules/               # Feature modules
+│   ├── auth/              # Authentication module
+│   ├── user/              # User management module
+│   ├── product/           # Product management module
+│   └── redis/             # Redis service module
+├── types/                 # TypeScript type definitions
+│   └── response.types.ts  # API response types
+└── utils/                 # Utility functions
+    └── response.util.ts   # Response builders
 ```
 
 ## 🔐 Authentication & Authorization
 
-### Role-Based Access Control (RBAC)
+### User Roles
 
-The application implements a three-tier role system:
+- **ADMIN**: Full system access (all operations)
+- **MODERATOR**: Product management access (create, update products)
+- **USER**: Limited read access (view products only)
 
-#### 👤 **USER** (Default Role)
+### Authentication Flow
 
-- View products
-- Access own profile (when implemented)
-
-#### 👮 **MODERATOR**
-
-- All USER permissions
-- Create and update products
-- Moderate product content
-
-#### 👑 **ADMIN**
-
-- All MODERATOR permissions
-- Full user management
-- Delete products
-- System administration
+1. **User Registration**: `POST /users` (returns user data + JWT token)
+2. **User Login**: `POST /auth/login` (returns JWT token)
+3. **Protected Routes**: Include `Authorization: Bearer <jwt-token>` header
 
 ### JWT Token Structure
 
@@ -268,190 +214,468 @@ The application implements a three-tier role system:
 {
   "username": "user@example.com",
   "sub": 123,
-  "role": "admin",
-  "iat": 1645123456,
-  "exp": 1645127056
+  "role": "USER",
+  "iat": 1609459200,
+  "exp": 1609462800
 }
 ```
 
-### Protected Routes
+### Example Usage
 
-- All product routes require authentication
-- User management routes require admin role
-- Product creation/modification requires admin or moderator role
-- Product deletion requires admin role
+```bash
+# Register a new user (automatically returns JWT token)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John Doe","email":"john@example.com","password":"password123"}'
 
-## 🗄️ Database Schema
+# Login (get JWT token)
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john@example.com","password":"password123"}'
 
-### MySQL - User Management
-
-```sql
-CREATE TABLE users (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  name VARCHAR(255) NOT NULL,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  role ENUM('user', 'admin', 'moderator') DEFAULT 'user'
-);
+# Access protected route
+curl -X GET http://localhost:3000/products \
+  -H "Authorization: Bearer <your-jwt-token>"
 ```
 
-### MongoDB - Product Management
+## 📚 API Endpoints
 
-```javascript
-{
-  _id: ObjectId,
-  name: String (required),
-  description: String,
-  price: Number (required),
-  category: String,
-  stockQuantity: Number (default: 0),
-  createdAt: Date,
-  updatedAt: Date
-}
+### Authentication
+
+- `POST /auth/login` - User login (Rate limited: 5 attempts per 15 minutes)
+
+### Users
+
+- `POST /users` - Create user & get JWT token (Rate limited: 10 per hour per IP)
+- `GET /users` - Get all users (Admin only) **[Cached: 5 minutes]**
+- `GET /users/:id` - Get user by ID (Admin only) **[Cached: 10 minutes]**
+- `PATCH /users/:id` - Update user (Admin only) **[Cache invalidation]**
+- `DELETE /users/:id` - Delete user (Admin only) **[Cache invalidation]**
+
+### Products
+
+- `POST /products` - Create product (Admin/Moderator) **[Cache invalidation]**
+- `GET /products` - Get all products (Authenticated) **[Cached: 10 minutes]**
+- `GET /products/:id` - Get product by ID (Authenticated) **[Cached: 15 minutes]**
+- `PATCH /products/:id` - Update product (Admin/Moderator) **[Cache invalidation]**
+- `DELETE /products/:id` - Delete product (Admin only) **[Cache invalidation]**
+
+## ⚡ Redis Caching & Performance
+
+### Cache Strategy
+
+- **Cache Keys**: Prefixed with `crud-app:` (configurable)
+- **TTL (Time To Live)**:
+  - User list: 5 minutes
+  - Individual users: 10 minutes
+  - Product list: 10 minutes
+  - Individual products: 15 minutes
+- **Cache Invalidation**: Automatic on CREATE, UPDATE, DELETE operations
+
+### Rate Limiting
+
+- **Login Endpoint**: 5 attempts per 15 minutes per user/IP
+- **User Registration**: 10 registrations per hour per IP
+- **Headers**: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+
+### Cache Testing
+
+```bash
+# Test Redis connection
+docker exec crud-redis redis-cli -a redispassword ping
+
+# View cached keys
+docker exec crud-redis redis-cli -a redispassword keys "crud-app:*"
+
+# Monitor Redis operations
+docker exec crud-redis redis-cli -a redispassword monitor
 ```
 
-## 📁 Project Structure
+## 🎯 Role-Based Access Control (RBAC)
 
+### Permission Matrix
+
+| Endpoint               | USER | MODERATOR | ADMIN | Cache  | Rate Limit |
+| ---------------------- | ---- | --------- | ----- | ------ | ---------- |
+| `POST /users`          | ✅   | ✅        | ✅    | ❌     | 10/hour    |
+| `GET /users`           | ❌   | ❌        | ✅    | 5 min  | ❌         |
+| `GET /users/:id`       | ❌   | ❌        | ✅    | 10 min | ❌         |
+| `PATCH /users/:id`     | ❌   | ❌        | ✅    | ❌     | ❌         |
+| `DELETE /users/:id`    | ❌   | ❌        | ✅    | ❌     | ❌         |
+| `POST /auth/login`     | ✅   | ✅        | ✅    | ❌     | 5/15min    |
+| `GET /products`        | ✅   | ✅        | ✅    | 10 min | ❌         |
+| `GET /products/:id`    | ✅   | ✅        | ✅    | 15 min | ❌         |
+| `POST /products`       | ❌   | ✅        | ✅    | ❌     | ❌         |
+| `PATCH /products/:id`  | ❌   | ✅        | ✅    | ❌     | ❌         |
+| `DELETE /products/:id` | ❌   | ❌        | ✅    | ❌     | ❌         |
+
+## 🐳 Docker Configuration
+
+### Services
+
+- **MySQL** (port 3306): User data storage
+- **MongoDB** (port 27017): Product data storage
+- **Redis** (port 6379): Caching and rate limiting
+- **Application** (port 3000): NestJS API server
+
+### Docker Commands
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Start specific services
+docker-compose up -d mysql mongodb redis
+
+# View logs (all services)
+docker-compose logs -f
+
+# View logs (specific service)
+docker-compose logs -f app
+docker-compose logs -f redis
+
+# Stop all services
+docker-compose down
+
+# Rebuild and start
+docker-compose up -d --build
+
+# Clean restart (remove volumes)
+docker-compose down -v && docker-compose up -d
 ```
-src/
-├── app.module.ts              # Root application module
-├── main.ts                    # Application entry point
-├── common/                    # Shared components
-│   ├── decorators/           # Custom decorators (@Roles)
-│   ├── enums/               # Role enums
-│   ├── exceptions/          # Custom exceptions
-│   ├── filters/             # Exception filters
-│   ├── guards/              # Authentication & authorization guards
-│   └── interceptors/        # Response interceptors
-├── config/                   # Configuration files
-│   ├── app.config.ts        # Application configuration
-│   ├── database.config.ts   # Database configuration
-│   └── swagger.config.ts    # API documentation config
-├── constants/               # Application constants
-├── database/               # Database related files
-│   ├── entities/           # TypeORM entities (Users)
-│   └── schemas/            # Mongoose schemas (Products)
-├── modules/               # Feature modules
-│   ├── auth/             # Authentication module
-│   ├── user/             # User management module
-│   └── product/          # Product management module
-├── types/                # TypeScript type definitions
-└── utils/               # Utility functions
+
+### Database Commands
+
+```bash
+# Access MySQL
+docker exec -it crud-mysql mysql -u crud_user -p
+
+# Access MongoDB
+docker exec -it crud-mongodb mongosh --username root --password rootpassword --authenticationDatabase admin product_db
+
+# Access Redis
+docker exec -it crud-redis redis-cli -a redispassword
 ```
 
 ## 🧪 Testing
 
-### Running Tests
+### Setup Test Data
 
 ```bash
-# Unit tests
-npm run test
-
-# E2E tests
-npm run test:e2e
-
-# Test coverage
-npm run test:cov
-
-# Watch mode
-npm run test:watch
+# Add sample products to MongoDB
+docker exec crud-mongodb mongosh --username root --password rootpassword --authenticationDatabase admin product_db --eval "
+db.products.insertMany([
+  {name: 'MacBook Pro', description: 'High-performance laptop', price: 2499.99, category: 'Electronics'},
+  {name: 'iPhone 15', description: 'Latest smartphone', price: 999.99, category: 'Electronics'},
+  {name: 'Wireless Headphones', description: 'Premium headphones', price: 299.99, category: 'Audio'}
+])
+"
 ```
 
-### Test Categories
+### Manual Testing with Swagger
 
-- **Unit Tests** - Individual component testing
-- **E2E Tests** - End-to-end API testing
-- **Authentication Tests** - JWT and login flow testing
-- **RBAC Tests** - Role-based access control verification
+1. Go to http://localhost:3000/api/docs
+2. Create a user with `POST /users` (copy the `access_token`)
+3. Click **🔒 Authorize** → Enter: `Bearer your_access_token`
+4. Test endpoints and watch console logs for caching behavior
 
-### Sample Test Execution
+### E2E Tests
 
 ```bash
-# Run specific E2E test
-npm run test:e2e -- --testNamePattern="User Management"
+# Run all E2E tests
+npm run test:e2e
 
-# Run RBAC tests
+# Run specific test suites
+npm run test:e2e -- test/users.e2e-spec.ts
+npm run test:e2e -- test/products.e2e-spec.ts
+npm run test:e2e -- test/auth.e2e-spec.ts
 npm run test:e2e -- test/roles.e2e-spec.ts
 ```
 
-## 🚢 Deployment
+### Test Coverage
 
-### Docker Deployment
+- ✅ User CRUD operations with JWT tokens
+- ✅ Product CRUD operations with caching
+- ✅ Authentication flow with rate limiting
+- ✅ Role-based access control
+- ✅ Error handling scenarios
+- ✅ Cache invalidation testing
+
+## 🔨 Development
+
+### Available Scripts
 
 ```bash
-# Build and start services
-docker-compose up -d --build
-
-# View logs
-docker-compose logs -f app
-
-# Stop services
-docker-compose down
+npm run build          # Build the application
+npm run start          # Start production server
+npm run start:dev      # Start development server (with hot reload)
+npm run start:debug    # Start with debugging
+npm run lint           # Run ESLint
+npm run format         # Run Prettier
+npm run test           # Run unit tests
+npm run test:e2e       # Run E2E tests
 ```
 
-### Production Build
+### Development Workflow
+
+1. Start services: `docker-compose up -d mysql mongodb redis`
+2. Start app: `npm run start:dev`
+3. View logs in terminal for Redis operations
+4. Test with Swagger UI: http://localhost:3000/api/docs
+
+### Code Quality Tools
+
+- **ESLint**: TypeScript linting with custom rules
+- **Prettier**: Consistent code formatting
+- **Husky**: Git hooks for pre-commit validation
+- **lint-staged**: Run linters only on staged files
+
+## 📊 Database Schemas
+
+### User Entity (MySQL/TypeORM)
+
+```typescript
+interface User {
+  id: number; // Primary key
+  name: string; // User's full name
+  email: string; // Unique email address
+  password: string; // Bcrypt hashed password
+  role: Role; // USER | ADMIN | MODERATOR
+}
+```
+
+### Product Schema (MongoDB/Mongoose)
+
+```typescript
+interface Product {
+  _id: ObjectId; // MongoDB document ID
+  name: string; // Product name
+  description: string; // Product description
+  price: number; // Product price
+  category?: string; // Optional category
+  createdAt: Date; // Auto-generated
+  updatedAt: Date; // Auto-updated
+}
+```
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+#### 1. Application Won't Start
+
+**Symptom**: Application crashes on startup
 
 ```bash
-# Build the application
-npm run build
+# Check if ports are available
+netstat -an | grep :3000
+netstat -an | grep :6379
 
-# Start production server
-npm run start:prod
+# Check Docker services
+docker-compose ps
+```
+
+#### 2. Database Connection Issues
+
+**MySQL Access Denied**:
+
+```bash
+# Check MySQL container
+docker-compose logs mysql
+
+# Fix: Restart MySQL service
+docker-compose restart mysql
+```
+
+**MongoDB Connection Failed**:
+
+```bash
+# Check MongoDB container
+docker-compose logs mongodb
+
+# Test connection
+docker exec crud-mongodb mongosh --username root --password rootpassword --eval "db.runCommand('ping')"
+```
+
+#### 3. Redis Connection Issues
+
+**Redis Not Responding**:
+
+```bash
+# Check Redis container
+docker-compose logs redis
+
+# Test Redis connection
+docker exec crud-redis redis-cli -a redispassword ping
+```
+
+#### 4. Caching Not Working
+
+**No Keys in Redis**:
+
+- Ensure you're authenticated in Swagger (JWT token)
+- Check console logs for Redis operations
+- Verify endpoints are being called correctly
+
+**Cache Not Invalidating**:
+
+- Check CREATE/UPDATE/DELETE operations
+- Look for cache invalidation logs in console
+
+#### 5. Rate Limiting Issues
+
+**Getting 429 Too Many Requests**:
+
+- Wait for the time window to reset
+- Check `X-RateLimit-Reset` header
+- Clear rate limit keys: `docker exec crud-redis redis-cli -a redispassword flushdb`
+
+### Debug Commands
+
+```bash
+# View all Redis keys
+docker exec crud-redis redis-cli -a redispassword keys "*"
+
+# Monitor Redis operations in real-time
+docker exec crud-redis redis-cli -a redispassword monitor
+
+# Check Redis memory usage
+docker exec crud-redis redis-cli -a redispassword info memory
+
+# View application logs
+docker-compose logs -f app
+
+# Check database contents
+docker exec crud-mongodb mongosh --username root --password rootpassword --authenticationDatabase admin product_db --eval "db.products.find().pretty()"
+```
+
+### Performance Optimization
+
+- Monitor Redis hit/miss ratios
+- Adjust TTL values based on usage patterns
+- Use Redis clustering for high availability
+- Implement Redis persistence for production
+
+## 🔄 API Response Format
+
+All API responses follow a consistent, type-safe format:
+
+### Success Response
+
+```typescript
+interface ApiSuccessResponse<T> {
+  success: true;
+  timestamp: string;
+  data: T;
+}
+```
+
+### Error Response
+
+```typescript
+interface ApiErrorResponse {
+  success: false;
+  timestamp: string;
+  statusCode: number;
+  message: string;
+  error?: string;
+  details?: unknown;
+}
+```
+
+### Examples
+
+```json
+// User creation with JWT token
+{
+  "success": true,
+  "timestamp": "2023-12-07T10:30:00.000Z",
+  "data": {
+    "user": {
+      "id": 1,
+      "name": "John Doe",
+      "email": "john@example.com",
+      "role": "USER"
+    },
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+
+// Rate limit exceeded
+{
+  "success": false,
+  "timestamp": "2023-12-07T10:30:00.000Z",
+  "statusCode": 429,
+  "message": "Too many login attempts. Please try again later.",
+  "error": "Rate Limit Exceeded",
+  "retryAfter": 300
+}
+```
+
+## 🚀 Deployment
+
+### Production Checklist
+
+- [ ] Change JWT_SECRET to a secure random string
+- [ ] Update database passwords
+- [ ] Configure Redis password
+- [ ] Set NODE_ENV=production
+- [ ] Enable HTTPS
+- [ ] Configure reverse proxy (nginx)
+- [ ] Set up monitoring and logging
+- [ ] Configure backup strategies
+
+### Environment Variables for Production
+
+```env
+NODE_ENV=production
+JWT_SECRET=your-very-secure-secret-key-with-at-least-32-chars
+REDIS_PASSWORD=your-secure-redis-password
+MYSQL_PASS=your-secure-mysql-password
 ```
 
 ## 🤝 Contributing
 
-### Development Workflow
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes
+4. Add tests if applicable
+5. Run tests: `npm run test:e2e`
+6. Run linting: `npm run lint`
+7. Commit changes: `git commit -m 'Add amazing feature'`
+8. Push to branch: `git push origin feature/amazing-feature`
+9. Submit a pull request
 
-1. **Fork the repository**
-2. **Create a feature branch**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-3. **Make your changes**
-4. **Run tests**
-   ```bash
-   npm run test
-   npm run test:e2e
-   ```
-5. **Commit with conventional commits**
-   ```bash
-   git commit -m "feat: add amazing feature"
-   ```
-6. **Push to your fork**
-   ```bash
-   git push origin feature/amazing-feature
-   ```
-7. **Create a Pull Request**
+### Development Guidelines
 
-### Code Quality Standards
+- Follow TypeScript best practices
+- Write tests for new features
+- Update documentation for API changes
+- Use conventional commit messages
+- Ensure all checks pass before submitting PR
 
-- **ESLint** - Code linting (runs on pre-commit)
-- **Prettier** - Code formatting (runs on pre-commit)
-- **TypeScript** - Type safety required
-- **Jest** - Test coverage expected for new features
-- **Conventional Commits** - Commit message format
-
-### Pre-commit Hooks
-
-The project uses Husky and lint-staged to ensure code quality:
-
-- Automatic linting and formatting
-- Test execution on staged files
-- Commit message validation
-
-## 📄 License
+## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- **NestJS Team** - For the amazing framework
-- **TypeORM & Mongoose** - For excellent ORM/ODM solutions
-- **Contributors** - Thank you for your contributions!
+- [NestJS](https://nestjs.com/) - Progressive Node.js framework
+- [Redis](https://redis.io/) - In-memory data structure store
+- [TypeORM](https://typeorm.io/) - ORM for TypeScript and JavaScript
+- [Mongoose](https://mongoosejs.com/) - MongoDB object modeling
+- [Passport](http://www.passportjs.org/) - Authentication middleware
+- [Swagger](https://swagger.io/) - API documentation tools
+
+## 📞 Support
+
+For questions and support:
+
+- 📧 Create an issue in this repository
+- 📚 Check the [Swagger documentation](http://localhost:3000/api/docs)
+- 🐛 Report bugs with detailed reproduction steps
+- 💡 Suggest features via GitHub issues
 
 ---
 
-**Built with ❤️ by [Aryan Pahuja](https://github.com/AryanPahuja21)**
-
-For questions or support, please open an issue on GitHub.
+**Happy Coding!** 🚀 Built with ❤️ using NestJS, Redis, and TypeScript.
