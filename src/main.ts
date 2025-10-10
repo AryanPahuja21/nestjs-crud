@@ -15,9 +15,11 @@ async function bootstrap() {
 
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
+      whitelist: false, // CRITICAL: Allow role field
+      forbidNonWhitelisted: false,
       transform: true,
+      skipMissingProperties: false,
+      validationError: { target: false, value: false },
     }),
   );
 

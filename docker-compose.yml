@@ -1,0 +1,73 @@
+services:
+  # MySQL Database for User Management
+  mysql:
+    image: mysql:8.0
+    container_name: crud-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: user_db
+      MYSQL_USER: crud_user
+      MYSQL_PASSWORD: crud_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 5
+      interval: 30s
+
+  # MongoDB Database for Product Management
+  mongodb:
+    image: mongo:7.0
+    container_name: crud-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+      MONGO_INITDB_DATABASE: product_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      timeout: 10s
+      retries: 5
+      interval: 30s
+
+  # NestJS Application
+  app:
+    build: .
+    container_name: crud-app
+    restart: unless-stopped
+    environment:
+      # Database Configuration
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: crud_user
+      MYSQL_PASS: crud_password
+      MYSQL_DB: user_db
+      
+      MONGO_URI: mongodb://root:rootpassword@mongodb:27017/product_db?authSource=admin
+      
+      # Application Configuration
+      PORT: 3000
+      NODE_ENV: production
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
+    ports:
+      - "3000:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+volumes:
+  mysql_data:
+  mongodb_data:

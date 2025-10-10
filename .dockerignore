@@ -1,7 +1,12 @@
 node_modules
-dist
-.git
-Dockerfile
-.dockerignore
-.env
 npm-debug.log
+.git
+.gitignore
+README.md
+.env
+.nyc_output
+coverage
+.nyc_output
+.coverage
+dist
+*.log

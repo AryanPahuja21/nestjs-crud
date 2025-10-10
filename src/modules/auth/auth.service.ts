@@ -30,6 +30,12 @@ export class AuthService {
       throw new InvalidCredentialsException('Invalid email or password');
     }
 
+    console.log('🔍 DEBUG: User from database:', {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    }); // Debug log
+
     const isPasswordValid = await bcrypt.compare(pass, user.password);
     if (!isPasswordValid) {
       throw new InvalidCredentialsException('Invalid email or password');
@@ -37,6 +43,7 @@ export class AuthService {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...result } = user;
+    console.log('🔍 DEBUG: Result being returned:', result); // Debug log
     return result as LoginUser;
   }
 
@@ -50,6 +57,7 @@ export class AuthService {
       sub: user.id,
       role: user.role,
     };
+
     return {
       access_token: this.jwtService.sign(payload),
     };

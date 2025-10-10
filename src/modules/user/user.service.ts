@@ -70,6 +70,7 @@ export class UserService {
   }
 
   async findByEmail(email: string): Promise<User | null> {
+    // Remove explicit select to let TypeORM load all columns
     return this.userRepo.findOne({ where: { email } });
   }
 
