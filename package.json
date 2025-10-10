@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "prepare": "husky",
+    "prepare": "is-ci || husky",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -65,6 +65,7 @@
     "eslint-plugin-prettier": "^5.5.4",
     "globals": "^16.0.0",
     "husky": "^9.1.7",
+    "is-ci": "^4.1.0",
     "jest": "^30.2.0",
     "lint-staged": "^16.2.3",
     "prettier": "^3.6.2",
