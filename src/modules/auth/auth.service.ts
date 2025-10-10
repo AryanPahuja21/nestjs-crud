@@ -1,9 +1,15 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
 import { InvalidCredentialsException } from '../../common/exceptions/invalid-credentials.exception';
 import { ValidationException } from '../../common/exceptions/validation.exception';
 import * as bcrypt from 'bcrypt';
+
+interface LoginUser {
+  id: number;
+  email: string;
+  name: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -12,7 +18,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(email: string, pass: string): Promise<any> {
+  async validateUser(email: string, pass: string): Promise<LoginUser> {
     if (!email || !pass) {
       throw new ValidationException('Email and password are required');
     }
@@ -27,11 +33,12 @@ export class AuthService {
       throw new InvalidCredentialsException('Invalid email or password');
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...result } = user;
-    return result;
+    return result as LoginUser;
   }
 
-  async login(user: any) {
+  login(user: LoginUser) {
     if (!user) {
       throw new ValidationException('User data is required for login');
     }

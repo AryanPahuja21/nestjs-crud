@@ -15,18 +15,18 @@ async function bootstrap() {
 
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, 
-      forbidNonWhitelisted: true, 
+      whitelist: true,
+      forbidNonWhitelisted: true,
       transform: true,
     }),
   );
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
-  
+
   const configService = app.get(ConfigService);
 
-  const port = configService.get('app.port') || 3000;
+  const port = configService.get<number>('app.port') || 3000;
   await app.listen(port);
 
   console.log(`🚀 Server running on http://localhost:${port}`);

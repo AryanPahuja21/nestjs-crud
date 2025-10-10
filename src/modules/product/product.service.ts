@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Product } from '../../database/schemas/product.schema'
+import { Product } from '../../database/schemas/product.schema';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { NotFoundCustomException } from '../../common/exceptions/not-found.exception';
@@ -23,7 +23,7 @@ export class ProductService {
 
     try {
       return await this.productModel.create(dto);
-    } catch (error) {
+    } catch {
       throw new DatabaseException('Failed to create product', 'create');
     }
   }
@@ -31,7 +31,7 @@ export class ProductService {
   async findAll(): Promise<Product[]> {
     try {
       return await this.productModel.find().exec();
-    } catch (error) {
+    } catch {
       throw new DatabaseException('Failed to retrieve products', 'findAll');
     }
   }
@@ -51,7 +51,7 @@ export class ProductService {
       if (error instanceof NotFoundCustomException || error instanceof ValidationException) {
         throw error;
       }
-      if (error.name === 'CastError') {
+      if (error && typeof error === 'object' && 'name' in error && error.name === 'CastError') {
         throw new ValidationException('Invalid product ID format');
       }
       throw new DatabaseException('Failed to find product', 'findOne');
@@ -77,7 +77,7 @@ export class ProductService {
       if (error instanceof NotFoundCustomException || error instanceof ValidationException) {
         throw error;
       }
-      if (error.name === 'CastError') {
+      if (error && typeof error === 'object' && 'name' in error && error.name === 'CastError') {
         throw new ValidationException('Invalid product ID format');
       }
       throw new DatabaseException('Failed to update product', 'update');
@@ -98,7 +98,7 @@ export class ProductService {
       if (error instanceof NotFoundCustomException || error instanceof ValidationException) {
         throw error;
       }
-      if (error.name === 'CastError') {
+      if (error && typeof error === 'object' && 'name' in error && error.name === 'CastError') {
         throw new ValidationException('Invalid product ID format');
       }
       throw new DatabaseException('Failed to delete product', 'remove');

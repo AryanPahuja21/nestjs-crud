@@ -35,9 +35,7 @@ describe('Products E2E', () => {
 
   describe('/products (GET)', () => {
     it('should return products array', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/products')
-        .expect(200);
+      const response = await request(app.getHttpServer()).get('/products').expect(200);
       expect(Array.isArray(response.body)).toBe(true);
     });
   });

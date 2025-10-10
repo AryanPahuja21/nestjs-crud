@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryFailedError } from 'typeorm';
-import { User } from '../../database/entities/user.entity'
+import { User } from '../../database/entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { NotFoundCustomException } from '../../common/exceptions/not-found.exception';
@@ -80,12 +80,12 @@ export class UserService {
 
     try {
       await this.findOne(id); // This will throw if user doesn't exist
-      
+
       const updateData = { ...dto };
       if (dto.password) {
         updateData.password = await bcrypt.hash(dto.password, 10);
       }
-      
+
       // Check for email uniqueness if email is being updated
       if (dto.email) {
         const existingUser = await this.userRepo.findOne({ where: { email: dto.email } });
@@ -93,13 +93,15 @@ export class UserService {
           throw new DuplicateResourceException('User', 'email', dto.email);
         }
       }
-      
+
       await this.userRepo.update(id, updateData);
       return this.findOne(id);
     } catch (error) {
-      if (error instanceof NotFoundCustomException || 
-          error instanceof ValidationException || 
-          error instanceof DuplicateResourceException) {
+      if (
+        error instanceof NotFoundCustomException ||
+        error instanceof ValidationException ||
+        error instanceof DuplicateResourceException
+      ) {
         throw error;
       }
       throw new DatabaseException('Failed to update user', 'update');

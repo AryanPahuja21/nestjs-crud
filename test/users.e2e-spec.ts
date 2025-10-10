@@ -36,18 +36,13 @@ describe('Users E2E', () => {
     });
 
     it('should fail validation for missing fields', async () => {
-      return request(app.getHttpServer())
-        .post('/users')
-        .send({ email: 'invalid' })
-        .expect(400);
+      return request(app.getHttpServer()).post('/users').send({ email: 'invalid' }).expect(400);
     });
   });
 
   describe('/users (GET)', () => {
     it('should return users array', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/users')
-        .expect(200);
+      const response = await request(app.getHttpServer()).get('/users').expect(200);
       expect(Array.isArray(response.body)).toBe(true);
     });
   });
