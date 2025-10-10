@@ -13,14 +13,21 @@ import { JwtService } from '@nestjs/jwt';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserWithTokenResponseDto } from './dto/user-with-token-response.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { User } from '../../database/entities/user.entity';
 import { HttpExceptionFilter } from '../../common/filters/http-exception.filter';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
+import {
+  UserRegistrationResponse,
+  UserListResponse,
+  UserItemResponse,
+  UserDeleteResponse,
+  UserUpdateResponse,
+  SafeUser,
+} from './interfaces/user-responses.interface';
+import { buildSuccessResponse, buildDeleteResponse } from '../../utils/response.util';
 
 @ApiTags('Users')
 @Controller('users')
@@ -36,9 +43,22 @@ export class UserController {
   @ApiResponse({
     status: 201,
     description: 'User created successfully with JWT token',
-    type: UserWithTokenResponseDto,
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        timestamp: { type: 'string', example: '2023-01-01T00:00:00.000Z' },
+        data: {
+          type: 'object',
+          properties: {
+            user: { $ref: '#/components/schemas/User' },
+            access_token: { type: 'string' },
+          },
+        },
+      },
+    },
   })
-  async create(@Body() dto: CreateUserDto): Promise<UserWithTokenResponseDto> {
+  async create(@Body() dto: CreateUserDto): Promise<UserRegistrationResponse> {
     const user = await this.userService.create(dto);
 
     // Generate JWT token for the new user
@@ -53,10 +73,10 @@ export class UserController {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
 
-    return {
-      user: userWithoutPassword,
+    return buildSuccessResponse({
+      user: userWithoutPassword as SafeUser,
       access_token,
-    };
+    });
   }
 
   @Get()
@@ -64,9 +84,26 @@ export class UserController {
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all users' })
-  @ApiResponse({ status: 200, type: [User] })
-  findAll() {
-    return this.userService.findAll();
+  @ApiResponse({
+    status: 200,
+    description: 'List of all users',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        timestamp: { type: 'string' },
+        data: { type: 'array', items: { $ref: '#/components/schemas/User' } },
+      },
+    },
+  })
+  async findAll(): Promise<UserListResponse> {
+    const users = await this.userService.findAll();
+
+    // Remove passwords from all users
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const safeUsers = users.map(({ password, ...user }) => user as SafeUser);
+
+    return buildSuccessResponse(safeUsers);
   }
 
   @Get(':id')
@@ -74,9 +111,26 @@ export class UserController {
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get user by ID' })
-  @ApiResponse({ status: 200, type: User })
-  findOne(@Param('id') id: number) {
-    return this.userService.findOne(id);
+  @ApiResponse({
+    status: 200,
+    description: 'User details',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        timestamp: { type: 'string' },
+        data: { $ref: '#/components/schemas/User' },
+      },
+    },
+  })
+  async findOne(@Param('id') id: number): Promise<UserItemResponse> {
+    const user = await this.userService.findOne(id);
+
+    // Remove password from response
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...safeUser } = user;
+
+    return buildSuccessResponse(safeUser as SafeUser);
   }
 
   @Patch(':id')
@@ -84,9 +138,26 @@ export class UserController {
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a user by ID' })
-  @ApiResponse({ status: 200, type: User })
-  update(@Param('id') id: number, @Body() dto: UpdateUserDto) {
-    return this.userService.update(id, dto);
+  @ApiResponse({
+    status: 200,
+    description: 'Updated user details',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        timestamp: { type: 'string' },
+        data: { $ref: '#/components/schemas/User' },
+      },
+    },
+  })
+  async update(@Param('id') id: number, @Body() dto: UpdateUserDto): Promise<UserUpdateResponse> {
+    const updatedUser = await this.userService.update(id, dto);
+
+    // Remove password from response
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...safeUser } = updatedUser;
+
+    return buildSuccessResponse(safeUser as SafeUser);
   }
 
   @Delete(':id')
@@ -94,8 +165,27 @@ export class UserController {
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a user by ID' })
-  @ApiResponse({ status: 200, description: 'User deleted successfully' })
-  remove(@Param('id') id: number) {
-    return this.userService.remove(id);
+  @ApiResponse({
+    status: 200,
+    description: 'User deleted successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        timestamp: { type: 'string' },
+        data: {
+          type: 'object',
+          properties: {
+            message: { type: 'string' },
+            deletedId: { type: 'number' },
+          },
+        },
+      },
+    },
+  })
+  async remove(@Param('id') id: number): Promise<UserDeleteResponse> {
+    await this.userService.remove(id);
+
+    return buildDeleteResponse('User deleted successfully', id);
   }
 }

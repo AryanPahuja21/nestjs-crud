@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs', 'dist/', '*.md', 'RBAC_SUMMARY.md'],
+    ignores: ['eslint.config.mjs', 'dist/', '*.md', 'RBAC_SUMMARY.md', 'docs/**'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
@@ -33,6 +33,7 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-member-access': 'warn',
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/require-await': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off', // Allow empty interfaces for type extension
     },
   },
   // Lenient rules for test files
