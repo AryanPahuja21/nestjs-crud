@@ -1,4 +1,4 @@
-# NestJS CRUD Application with Redis Caching
+# Product Inventory Management System
 
 A comprehensive, production-ready CRUD application built with NestJS, featuring user management, product management, JWT authentication, role-based access control (RBAC), Redis caching, and rate limiting.
 
