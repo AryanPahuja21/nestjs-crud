@@ -1,18 +1,10 @@
 import { Product } from '../../../database/schemas/product.schema';
-import {
-  ListResponse,
-  ItemResponse,
-  DeleteResponse,
-  ApiPaginatedResponse,
-} from '../../../types/response.types';
+import { ListResponse, ItemResponse, DeleteResponse } from '../../../types/response.types';
 
 // Standard product responses
 export type ProductListResponse = ListResponse<Product>;
 export type ProductItemResponse = ItemResponse<Product>;
 export type ProductDeleteResponse = DeleteResponse;
-
-// Paginated products response
-export type ProductPaginatedResponse = ApiPaginatedResponse<Product>;
 
 // Product creation response
 export type ProductCreateResponse = ItemResponse<Product>;

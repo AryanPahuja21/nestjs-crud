@@ -2,8 +2,6 @@ import {
   ApiSuccessResponse,
   ApiErrorResponse,
   DeleteResponse,
-  PaginationMeta,
-  ApiPaginatedResponse,
   HttpStatusCode,
 } from '../types/response.types';
 
@@ -63,46 +61,4 @@ export function buildDeleteResponse(message: string, deletedId: string | number)
     message,
     deletedId,
   });
-}
-
-/**
- * Builds a paginated response
- * @param data - Array of items
- * @param meta - Pagination metadata
- * @returns Paginated response
- */
-export function buildPaginatedResponse<T>(
-  data: T[],
-  meta: PaginationMeta,
-): ApiPaginatedResponse<T> {
-  return {
-    success: true,
-    timestamp: new Date().toISOString(),
-    data,
-    meta,
-  };
-}
-
-/**
- * Calculates pagination metadata
- * @param page - Current page number
- * @param limit - Items per page
- * @param total - Total number of items
- * @returns Pagination metadata
- */
-export function calculatePaginationMeta(
-  page: number,
-  limit: number,
-  total: number,
-): PaginationMeta {
-  const totalPages = Math.ceil(total / limit);
-
-  return {
-    page,
-    limit,
-    total,
-    totalPages,
-    hasNextPage: page < totalPages,
-    hasPreviousPage: page > 1,
-  };
 }

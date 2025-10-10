@@ -32,23 +32,6 @@ export interface ApiErrorResponse extends BaseApiResponse {
 // Union type for all possible responses
 export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;
 
-// Pagination metadata interface
-export interface PaginationMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-}
-
-// Paginated response interface
-export interface ApiPaginatedResponse<T = unknown> extends BaseApiResponse {
-  success: true;
-  data: T[];
-  meta: PaginationMeta;
-}
-
 // Generic message response type - for operations that don't return data
 export type MessageResponse = ApiSuccessResponse<{ message: string }>;
 

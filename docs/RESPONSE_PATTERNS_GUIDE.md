@@ -41,7 +41,6 @@ Our application uses a standardized response pattern to ensure consistent API re
 BaseApiResponse (interface)
 ├── ApiSuccessResponse<T> (interface)
 ├── ApiErrorResponse (interface)
-├── ApiPaginatedResponse<T> (interface)
 └── Various utility types...
 ```
 
@@ -294,21 +293,6 @@ export class ProductController {
     await this.productService.remove(id);
     return buildDeleteResponse('Product deleted successfully', id);
   }
-}
-```
-
-### Pagination Example
-
-```typescript
-@Get()
-async findAllPaginated(
-  @Query('page') page = 1,
-  @Query('limit') limit = 10
-): Promise<ApiPaginatedResponse<Product>> {
-  const [products, total] = await this.productService.findAllPaginated(page, limit);
-  const meta = calculatePaginationMeta(page, limit, total);
-
-  return buildPaginatedResponse(products, meta);
 }
 ```
 
