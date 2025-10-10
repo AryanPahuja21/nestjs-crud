@@ -51,7 +51,12 @@ export class ProductService {
       if (error instanceof NotFoundCustomException || error instanceof ValidationException) {
         throw error;
       }
-      if (error && typeof error === 'object' && 'name' in error && error.name === 'CastError') {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'name' in error &&
+        (error as { name: string }).name === 'CastError'
+      ) {
         throw new ValidationException('Invalid product ID format');
       }
       throw new DatabaseException('Failed to find product', 'findOne');
@@ -77,7 +82,12 @@ export class ProductService {
       if (error instanceof NotFoundCustomException || error instanceof ValidationException) {
         throw error;
       }
-      if (error && typeof error === 'object' && 'name' in error && error.name === 'CastError') {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'name' in error &&
+        (error as { name: string }).name === 'CastError'
+      ) {
         throw new ValidationException('Invalid product ID format');
       }
       throw new DatabaseException('Failed to update product', 'update');
@@ -98,7 +108,12 @@ export class ProductService {
       if (error instanceof NotFoundCustomException || error instanceof ValidationException) {
         throw error;
       }
-      if (error && typeof error === 'object' && 'name' in error && error.name === 'CastError') {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'name' in error &&
+        (error as { name: string }).name === 'CastError'
+      ) {
         throw new ValidationException('Invalid product ID format');
       }
       throw new DatabaseException('Failed to delete product', 'remove');

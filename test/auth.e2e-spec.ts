@@ -5,7 +5,6 @@ import { AppModule } from '../src/app.module';
 
 describe('Auth E2E', () => {
   let app: INestApplication;
-  let token: string;
   const testEmail = `aryan-${Date.now()}@example.com`;
 
   beforeAll(async () => {
@@ -18,7 +17,7 @@ describe('Auth E2E', () => {
     await app.init();
 
     // Create a user and get token directly from registration
-    const userResponse = await request(app.getHttpServer())
+    await request(app.getHttpServer())
       .post('/users')
       .send({
         name: 'Aryan',
@@ -26,8 +25,6 @@ describe('Auth E2E', () => {
         password: '123456',
       })
       .expect(201);
-
-    token = userResponse.body.access_token;
   });
 
   it('should login and return a JWT token', async () => {
@@ -44,9 +41,22 @@ describe('Auth E2E', () => {
   });
 
   it('should access protected route with token from registration', async () => {
+    // Create admin user for testing protected routes that require admin role
+    const adminResponse = await request(app.getHttpServer())
+      .post('/users')
+      .send({
+        name: 'Admin',
+        email: `admin-${Date.now()}@example.com`,
+        password: '123456',
+        role: 'admin',
+      })
+      .expect(201);
+
+    const adminToken = adminResponse.body.access_token;
+
     const res = await request(app.getHttpServer())
       .post('/products')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Authorization', `Bearer ${adminToken}`)
       .send({
         name: 'MacBook Pro',
         description: 'High-end laptop',
