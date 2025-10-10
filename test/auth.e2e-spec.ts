@@ -17,8 +17,8 @@ describe('Auth E2E', () => {
     app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
     await app.init();
 
-    // First, create a user
-    await request(app.getHttpServer())
+    // Create a user and get token directly from registration
+    const userResponse = await request(app.getHttpServer())
       .post('/users')
       .send({
         name: 'Aryan',
@@ -26,6 +26,8 @@ describe('Auth E2E', () => {
         password: '123456',
       })
       .expect(201);
+
+    token = userResponse.body.access_token;
   });
 
   it('should login and return a JWT token', async () => {
@@ -38,10 +40,10 @@ describe('Auth E2E', () => {
       .expect(201);
 
     expect(res.body.access_token).toBeDefined();
-    token = res.body.access_token;
+    expect(typeof res.body.access_token).toBe('string');
   });
 
-  it('should access protected route with token', async () => {
+  it('should access protected route with token from registration', async () => {
     const res = await request(app.getHttpServer())
       .post('/products')
       .set('Authorization', `Bearer ${token}`)

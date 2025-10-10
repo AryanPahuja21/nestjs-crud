@@ -1,7 +1,9 @@
 import { Controller, Get, Post, Body, Param, Patch, Delete, UseFilters } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserWithTokenResponseDto } from './dto/user-with-token-response.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { User } from '../../database/entities/user.entity';
 import { HttpExceptionFilter } from '../../common/filters/http-exception.filter';
@@ -10,13 +12,33 @@ import { HttpExceptionFilter } from '../../common/filters/http-exception.filter'
 @Controller('users')
 @UseFilters(HttpExceptionFilter)
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new user' })
-  @ApiResponse({ status: 201, type: User })
-  create(@Body() dto: CreateUserDto) {
-    return this.userService.create(dto);
+  @ApiOperation({ summary: 'Create a new user and return JWT token' })
+  @ApiResponse({
+    status: 201,
+    description: 'User created successfully with JWT token',
+    type: UserWithTokenResponseDto,
+  })
+  async create(@Body() dto: CreateUserDto): Promise<UserWithTokenResponseDto> {
+    const user = await this.userService.create(dto);
+
+    // Generate JWT token for the new user
+    const payload = { username: user.email, sub: user.id };
+    const access_token = this.jwtService.sign(payload);
+
+    // Remove password from response
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...userWithoutPassword } = user;
+
+    return {
+      user: userWithoutPassword,
+      access_token,
+    };
   }
 
   @Get()

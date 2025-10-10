@@ -21,7 +21,7 @@ describe('Users E2E', () => {
   });
 
   describe('/users (POST)', () => {
-    it('should create a user', async () => {
+    it('should create a user and return JWT token', async () => {
       const response = await request(app.getHttpServer())
         .post('/users')
         .send({
@@ -31,8 +31,12 @@ describe('Users E2E', () => {
         })
         .expect(201);
 
-      expect(response.body).toHaveProperty('id');
-      expect(response.body.name).toBe('Aryan');
+      expect(response.body).toHaveProperty('user');
+      expect(response.body).toHaveProperty('access_token');
+      expect(response.body.user).toHaveProperty('id');
+      expect(response.body.user.name).toBe('Aryan');
+      expect(response.body.user).not.toHaveProperty('password'); // Password should not be in response
+      expect(typeof response.body.access_token).toBe('string');
     });
 
     it('should fail validation for missing fields', async () => {
