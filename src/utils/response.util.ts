@@ -6,12 +6,13 @@ export const buildSuccessResponse = (data: any) => {
     };
   };
   
-  export const buildErrorResponse = (message: string, statusCode: number) => {
+  export const buildErrorResponse = (message: string, statusCode: number, error?: string) => {
     return {
       success: false,
       timestamp: new Date().toISOString(),
       statusCode,
       message,
+      ...(error && { error }),
     };
   };
   

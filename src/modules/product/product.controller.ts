@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards, UseFilters } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -6,10 +6,12 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from '../../database/schemas/product.schema';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { HttpExceptionFilter } from '../../common/filters/http-exception.filter';
 
 @ApiTags('Products')
 @ApiBearerAuth()
 @Controller('products')
+@UseFilters(HttpExceptionFilter)
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 

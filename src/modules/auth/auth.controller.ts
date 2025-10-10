@@ -1,9 +1,11 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, UseFilters } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ApiTags, ApiBody } from '@nestjs/swagger';
+import { HttpExceptionFilter } from '../../common/filters/http-exception.filter';
 
 @ApiTags('auth')
 @Controller('auth')
+@UseFilters(HttpExceptionFilter)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
