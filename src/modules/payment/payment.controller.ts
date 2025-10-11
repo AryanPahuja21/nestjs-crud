@@ -64,6 +64,25 @@ export class PaymentController {
     });
   }
 
+  @Post('confirm-intent')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Confirm a payment intent (simple test method)' })
+  async confirmPaymentIntent(@Body() body: { intentId: string }) {
+    const { intentId } = body;
+
+    // Initialize Stripe with config
+    const stripe = new Stripe(this.configService.get<string>('stripe.secretKey')!, {
+      apiVersion: '2025-09-30.clover',
+    });
+
+    const confirmed = await stripe.paymentIntents.confirm(intentId, {
+      payment_method: 'pm_card_visa', // Stripe test card
+    });
+
+    return confirmed;
+  }
+
   @Post('confirm')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
