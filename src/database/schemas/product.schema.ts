@@ -23,6 +23,10 @@ export class Product extends Document {
   @ApiProperty({ example: 10, description: 'Available stock quantity' })
   @Prop({ default: 0 })
   stockQuantity: number;
+
+  @ApiProperty({ example: 'price_1234567890', description: 'Stripe Price ID' })
+  @Prop()
+  stripePriceId?: string;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);

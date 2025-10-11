@@ -32,4 +32,8 @@ export class User {
     default: Role.USER,
   })
   role: Role;
+
+  @ApiProperty({ example: 'cus_1234567890', description: 'Stripe Customer ID' })
+  @Column({ nullable: true })
+  stripeCustomerId?: string;
 }
