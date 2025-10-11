@@ -11,7 +11,6 @@ import {
   Headers,
   Req,
 } from '@nestjs/common';
-import type { Request as ExpressRequest } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PaymentService } from './payment.service';
@@ -129,7 +128,7 @@ export class PaymentController {
   @ApiResponse({ status: 400, description: 'Invalid webhook signature' })
   async handleWebhook(
     @Headers('stripe-signature') signature: string,
-    @Req() req: ExpressRequest & { rawBody?: Buffer },
+    @Req() req: { rawBody?: Buffer },
   ): Promise<{ received: boolean }> {
     const endpointSecret = this.configService.get<string>('stripe.webhookSecret');
     const secretKey = this.configService.get<string>('stripe.secretKey');

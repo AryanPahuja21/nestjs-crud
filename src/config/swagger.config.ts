@@ -7,8 +7,4 @@ export const swaggerConfig = new DocumentBuilder()
   )
   .setVersion('1.0')
   .addBearerAuth()
-  .addTag('auth', 'Authentication endpoints')
-  .addTag('users', 'User management endpoints')
-  .addTag('products', 'Product management endpoints')
-  .addTag('payments', 'Payment processing endpoints')
   .build();

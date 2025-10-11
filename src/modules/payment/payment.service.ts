@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { Payment, PaymentStatus } from '../../database/schemas/payment.schema';
@@ -75,8 +75,8 @@ export class PaymentService {
 
       // Save payment record to database
       const payment = new this.paymentModel({
-        userId,
-        productId: dto.productId,
+        userId: new Types.ObjectId(userId),
+        productId: new Types.ObjectId(dto.productId),
         stripePaymentIntentId: paymentIntent.id,
         stripeCustomerId: customer.id,
         amount,
@@ -142,7 +142,7 @@ export class PaymentService {
   async getPaymentsByUser(userId: string): Promise<Payment[]> {
     try {
       return await this.paymentModel
-        .find({ userId })
+        .find({ userId: new Types.ObjectId(userId) })
         .populate('productId')
         .sort({ createdAt: -1 })
         .exec();
@@ -178,6 +178,9 @@ export class PaymentService {
           break;
         case 'payment_intent.payment_failed':
           await this.handlePaymentFailed(event.data.object);
+          break;
+        case 'payment_intent.created':
+          await this.handlePaymentIntentCreated(event.data.object);
           break;
         default:
           this.logger.log(`Unhandled event type: ${event.type}`);
@@ -261,5 +264,11 @@ export class PaymentService {
       payment.failureReason = paymentIntent.last_payment_error?.message || 'Payment failed';
       await payment.save();
     }
+  }
+
+  private async handlePaymentIntentCreated(paymentIntent: Stripe.PaymentIntent): Promise<void> {
+    this.logger.log(
+      `Payment intent created: ${paymentIntent.id} for amount: ${paymentIntent.amount}`,
+    );
   }
 }

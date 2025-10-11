@@ -59,25 +59,8 @@ services:
     build: .
     container_name: crud-app
     restart: unless-stopped
-    environment:
-      # Database Configuration
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-      MYSQL_USER: crud_user
-      MYSQL_PASS: crud_password
-      MYSQL_DB: user_db
-      
-      MONGO_URI: mongodb://root:rootpassword@mongodb:27017/product_db?authSource=admin
-      
-      # Redis Configuration
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: redispassword
-      
-      # Application Configuration
-      PORT: 3000
-      NODE_ENV: production
-      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
+    env_file:
+      - docker.env
     ports:
       - "3000:3000"
     depends_on:
