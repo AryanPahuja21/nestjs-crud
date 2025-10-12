@@ -1,6 +1,7 @@
-import { Controller, Post, Body, UseFilters, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseFilters, UseGuards, Get, Param, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { AuthService } from './auth.service';
-import { ApiTags, ApiBody, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiBody, ApiResponse, ApiOperation } from '@nestjs/swagger';
 import { HttpExceptionFilter } from '../../common/filters/http-exception.filter';
 import { RateLimitGuard, RateLimit } from '../../common/guards/rate-limit.guard';
 import { LoginResponse } from './interfaces/auth-responses.interface';
@@ -169,5 +170,71 @@ export class AuthController {
     return buildSuccessResponse({
       message: 'Verification email sent successfully',
     });
+  }
+
+  @Get('verify-email/:token')
+  @ApiOperation({ summary: 'Verify email via GET request (for direct email links)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Email verified successfully',
+    content: {
+      'text/html': {
+        schema: {
+          type: 'string',
+          example: '<html><body><h1>Email verified successfully!</h1></body></html>',
+        },
+      },
+    },
+  })
+  async verifyEmailViaGet(@Param('token') token: string, @Res() res: Response): Promise<void> {
+    try {
+      const user = await this.userService.verifyEmail(token);
+
+      // Send welcome email
+      await this.emailService.sendWelcomeEmail(user.email, user.name);
+
+      // Return HTML response
+      res.send(`
+        <html>
+          <head>
+            <title>Email Verified</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .success { color: #28a745; }
+              .container { max-width: 500px; margin: 0 auto; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1 class="success">✅ Email Verified Successfully!</h1>
+              <p>Hi ${user.name}!</p>
+              <p>Your email address has been verified. You can now access all features of our platform.</p>
+              <p><a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}">Continue to Application</a></p>
+            </div>
+          </body>
+        </html>
+      `);
+    } catch {
+      res.send(`
+        <html>
+          <head>
+            <title>Verification Failed</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .error { color: #dc3545; }
+              .container { max-width: 500px; margin: 0 auto; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1 class="error">❌ Verification Failed</h1>
+              <p>The verification link is invalid or has expired.</p>
+              <p>Please request a new verification email.</p>
+              <p><a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}">Go to Application</a></p>
+            </div>
+          </body>
+        </html>
+      `);
+    }
   }
 }
