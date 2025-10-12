@@ -1,0 +1,9 @@
+# Playwright Test Results
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Test artifacts
+tests/test-results/
+tests/playwright-report/

@@ -50,6 +50,11 @@ export class RateLimitGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Skip rate limiting in test environment
+    if (process.env.NODE_ENV === 'test') {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest<RequestWithUser>();
 
     // Get rate limit options from method or class

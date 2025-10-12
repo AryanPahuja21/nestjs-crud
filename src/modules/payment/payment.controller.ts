@@ -198,7 +198,8 @@ export class PaymentController {
     payment: Payment & { createdAt?: Date; updatedAt?: Date },
   ): PaymentResponseDto {
     return {
-      id: (payment._id as { toString(): string })?.toString() || payment.id || '',
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      id: String(payment._id) || payment.id || '',
       userId: payment.userId?.toString() || '',
       productId: payment.productId?.toString() || '',
       stripePaymentIntentId: payment.stripePaymentIntentId || '',

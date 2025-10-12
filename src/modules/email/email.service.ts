@@ -21,6 +21,12 @@ export class EmailService {
   }
 
   async sendVerificationEmail(email: string, name: string, token: string): Promise<void> {
+    // Skip email sending in test environment
+    if (process.env.NODE_ENV === 'test') {
+      this.logger.log(`[TEST MODE] Would send verification email to ${email} with token ${token}`);
+      return;
+    }
+
     const verificationUrl = `${process.env.BACKEND_URL || 'http://localhost:3000'}/auth/verify-email/${token}`;
 
     const mailOptions = {
@@ -65,6 +71,12 @@ export class EmailService {
   }
 
   async sendWelcomeEmail(email: string, name: string): Promise<void> {
+    // Skip email sending in test environment
+    if (process.env.NODE_ENV === 'test') {
+      this.logger.log(`[TEST MODE] Would send welcome email to ${email}`);
+      return;
+    }
+
     const mailOptions = {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
