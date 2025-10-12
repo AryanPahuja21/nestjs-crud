@@ -23,6 +23,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { RedisService } from '../redis/redis.service';
 import { RateLimitGuard, RateLimit } from '../../common/guards/rate-limit.guard';
+import { EmailService } from '../email/email.service';
 import {
   UserRegistrationResponse,
   UserListResponse,
@@ -41,6 +42,7 @@ export class UserController {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly redisService: RedisService,
+    private readonly emailService: EmailService,
   ) {}
 
   @Post()
@@ -88,6 +90,12 @@ export class UserController {
   async create(@Body() dto: CreateUserDto): Promise<UserRegistrationResponse> {
     const user = await this.userService.create(dto);
 
+    // Generate email verification token
+    const verificationToken = await this.userService.generateEmailVerificationToken(user.id);
+
+    // Send verification email
+    await this.emailService.sendVerificationEmail(user.email, user.name, verificationToken);
+
     // Generate JWT token for the new user
     const payload = {
       username: user.email,
@@ -96,9 +104,13 @@ export class UserController {
     };
     const access_token = this.jwtService.sign(payload);
 
-    // Remove password from response
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userWithoutPassword } = user;
+    // Remove password and verification fields from response
+    const {
+      password, // eslint-disable-line @typescript-eslint/no-unused-vars
+      emailVerificationToken, // eslint-disable-line @typescript-eslint/no-unused-vars
+      emailVerificationTokenExpires, // eslint-disable-line @typescript-eslint/no-unused-vars
+      ...userWithoutPassword
+    } = user;
 
     return buildSuccessResponse({
       user: userWithoutPassword as SafeUser,

@@ -36,4 +36,24 @@ export class User {
   @ApiProperty({ example: 'cus_1234567890', description: 'Stripe Customer ID' })
   @Column({ nullable: true })
   stripeCustomerId?: string;
+
+  @ApiProperty({ example: false, description: 'Whether the user has verified their email address' })
+  @Column({ type: 'boolean', default: false })
+  isEmailVerified: boolean;
+
+  @ApiProperty({
+    example: 'abc123def456',
+    description: 'Email verification token',
+    required: false,
+  })
+  @Column({ nullable: true })
+  emailVerificationToken?: string;
+
+  @ApiProperty({
+    example: '2023-12-01T10:00:00Z',
+    description: 'Timestamp when email verification token expires',
+    required: false,
+  })
+  @Column({ type: 'timestamp', nullable: true })
+  emailVerificationTokenExpires?: Date;
 }

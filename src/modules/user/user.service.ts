@@ -9,6 +9,7 @@ import { DuplicateResourceException } from '../../common/exceptions/duplicate-re
 import { ValidationException } from '../../common/exceptions/validation.exception';
 import { DatabaseException } from '../../common/exceptions/database.exception';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class UserService {
@@ -122,6 +123,85 @@ export class UserService {
         throw error;
       }
       throw new DatabaseException('Failed to delete user', 'remove');
+    }
+  }
+
+  async generateEmailVerificationToken(userId: number): Promise<string> {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
+    try {
+      await this.userRepo.update(userId, {
+        emailVerificationToken: token,
+        emailVerificationTokenExpires: expiresAt,
+      });
+      return token;
+    } catch {
+      throw new DatabaseException('Failed to generate verification token', 'generateToken');
+    }
+  }
+
+  async verifyEmail(token: string): Promise<User> {
+    if (!token) {
+      throw new ValidationException('Verification token is required');
+    }
+
+    try {
+      const user = await this.userRepo.findOne({
+        where: {
+          emailVerificationToken: token,
+        },
+      });
+
+      if (!user) {
+        throw new ValidationException('Invalid verification token');
+      }
+
+      if (!user.emailVerificationTokenExpires || user.emailVerificationTokenExpires < new Date()) {
+        throw new ValidationException('Verification token has expired');
+      }
+
+      if (user.isEmailVerified) {
+        throw new ValidationException('Email is already verified');
+      }
+
+      // Update user as verified and clear token fields
+      await this.userRepo.update(user.id, {
+        isEmailVerified: true,
+        emailVerificationToken: undefined,
+        emailVerificationTokenExpires: undefined,
+      });
+
+      return this.findOne(user.id);
+    } catch (error) {
+      if (error instanceof ValidationException) {
+        throw error;
+      }
+      throw new DatabaseException('Failed to verify email', 'verifyEmail');
+    }
+  }
+
+  async resendVerificationEmail(email: string): Promise<User> {
+    if (!email) {
+      throw new ValidationException('Email is required');
+    }
+
+    try {
+      const user = await this.findByEmail(email);
+      if (!user) {
+        throw new NotFoundCustomException('User', email);
+      }
+
+      if (user.isEmailVerified) {
+        throw new ValidationException('Email is already verified');
+      }
+
+      return user;
+    } catch (error) {
+      if (error instanceof ValidationException || error instanceof NotFoundCustomException) {
+        throw error;
+      }
+      throw new DatabaseException('Failed to process resend request', 'resendVerification');
     }
   }
 }
