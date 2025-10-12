@@ -1,5 +1,5 @@
 import { Controller, Post, Body, UseFilters, UseGuards, Get, Param, Res } from '@nestjs/common';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { ApiTags, ApiBody, ApiResponse, ApiOperation } from '@nestjs/swagger';
 import { HttpExceptionFilter } from '../../common/filters/http-exception.filter';

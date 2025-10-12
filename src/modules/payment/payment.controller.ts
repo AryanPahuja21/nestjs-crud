@@ -11,7 +11,7 @@ import {
   Headers,
   Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PaymentService } from './payment.service';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
@@ -68,6 +68,23 @@ export class PaymentController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Confirm a payment intent (simple test method)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        intentId: {
+          type: 'string',
+          example: 'pi_1234567890_secret_1234567890',
+          description: 'The payment intent ID to confirm',
+        },
+      },
+      required: ['intentId'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Payment intent confirmed successfully',
+  })
   async confirmPaymentIntent(@Body() body: { intentId: string }) {
     const { intentId } = body;
 
@@ -78,6 +95,7 @@ export class PaymentController {
 
     const confirmed = await stripe.paymentIntents.confirm(intentId, {
       payment_method: 'pm_card_visa', // Stripe test card
+      return_url: 'http://localhost:3000/payment/success', // Required for redirect-based payment methods
     });
 
     return confirmed;
