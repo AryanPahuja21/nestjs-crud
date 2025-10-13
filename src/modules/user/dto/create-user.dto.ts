@@ -28,4 +28,13 @@ export class CreateUserDto {
   @IsOptional()
   @IsEnum(Role)
   role?: Role;
+
+  @ApiProperty({
+    example: 'price_1234567890',
+    description: 'Stripe Price ID for subscription plan',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  subscriptionPriceId?: string;
 }

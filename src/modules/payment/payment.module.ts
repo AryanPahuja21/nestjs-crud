@@ -6,6 +6,7 @@ import { PaymentService } from './payment.service';
 import { Payment, PaymentSchema } from '../../database/schemas/payment.schema';
 import { Product, ProductSchema } from '../../database/schemas/product.schema';
 import { UserModule } from '../user/user.module';
+import { SubscriptionModule } from '../subscription/subscription.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { UserModule } from '../user/user.module';
       { name: Product.name, schema: ProductSchema },
     ]),
     forwardRef(() => UserModule),
+    forwardRef(() => SubscriptionModule),
   ],
   controllers: [PaymentController],
   providers: [PaymentService],

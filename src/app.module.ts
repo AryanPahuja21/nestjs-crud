@@ -6,6 +6,7 @@ import { ProductModule } from './modules/product/product.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { EmailModule } from './modules/email/email.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -26,6 +27,7 @@ import stripeConfig from './config/stripe.config';
     ProductModule,
     AuthModule,
     PaymentModule,
+    SubscriptionModule,
     EmailModule,
   ],
   controllers: [AppController],

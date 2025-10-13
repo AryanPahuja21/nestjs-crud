@@ -9,6 +9,7 @@ import { DuplicateResourceException } from '../../common/exceptions/duplicate-re
 import { ValidationException } from '../../common/exceptions/validation.exception';
 import { DatabaseException } from '../../common/exceptions/database.exception';
 import { PaymentService } from '../payment/payment.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
@@ -21,6 +22,8 @@ export class UserService {
     private readonly userRepo: Repository<User>,
     @Inject(forwardRef(() => PaymentService))
     private readonly paymentService: PaymentService,
+    @Inject(forwardRef(() => SubscriptionService))
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async create(dto: CreateUserDto): Promise<User> {
@@ -56,9 +59,41 @@ export class UserService {
         savedUser.stripeCustomerId = stripeCustomer.id;
         await this.userRepo.save(savedUser);
 
-        this.logger.log(`Created user ${savedUser.id} with Stripe customer ${stripeCustomer.id}`);
+        this.logger.log(
+          `✅ Created user ${savedUser.id} with Stripe customer ${stripeCustomer.id}`,
+        );
+
+        // Create subscription if priceId is provided
+        if (dto.subscriptionPriceId) {
+          try {
+            this.logger.log(
+              `Creating subscription for user ${savedUser.id} with price ${dto.subscriptionPriceId}`,
+            );
+            const subscriptionResult = await this.subscriptionService.createSubscription(
+              savedUser.id.toString(),
+              { priceId: dto.subscriptionPriceId },
+            );
+
+            this.logger.log(
+              `✅ Created subscription ${subscriptionResult.subscription.stripeSubscriptionId} for user ${savedUser.id}`,
+            );
+
+            // Note: The subscription service will automatically update the user's subscription info
+            // so we don't need to do that here
+          } catch (subscriptionError) {
+            this.logger.error(
+              `❌ Failed to create subscription for user ${savedUser.id}, but user and customer were created:`,
+              subscriptionError,
+            );
+            // Don't fail user creation if subscription fails - they can subscribe later
+            // In production, you might want to queue this for retry
+          }
+        }
       } catch (stripeError) {
-        this.logger.error('Failed to create Stripe customer, but user was created', stripeError);
+        this.logger.error(
+          '❌ Failed to create Stripe customer, but user was created:',
+          stripeError,
+        );
         // Don't fail user creation if Stripe fails - they can be created later
         // In production, you might want to queue this for retry
       }
@@ -352,6 +387,51 @@ export class UserService {
         throw error;
       }
       throw new DatabaseException('Failed to delete Stripe customer', 'deleteUserStripeCustomer');
+    }
+  }
+
+  /**
+   * Update user's subscription information in the database
+   */
+  async updateUserSubscriptionInfo(
+    userId: number,
+    updates: {
+      subscriptionId?: string;
+      subscriptionStatus?: string;
+      subscriptionPlan?: string;
+      subscriptionEndDate?: Date;
+    },
+  ): Promise<void> {
+    try {
+      this.logger.log(`Updating subscription info for user ${userId}`);
+
+      const updateData: Partial<User> = {};
+
+      if (updates.subscriptionId !== undefined) {
+        updateData.currentSubscriptionId = updates.subscriptionId;
+      }
+
+      if (updates.subscriptionStatus !== undefined) {
+        updateData.subscriptionStatus = updates.subscriptionStatus;
+      }
+
+      if (updates.subscriptionPlan !== undefined) {
+        updateData.subscriptionPlan = updates.subscriptionPlan;
+      }
+
+      if (updates.subscriptionEndDate !== undefined) {
+        updateData.subscriptionEndDate = updates.subscriptionEndDate;
+      }
+
+      await this.userRepo.update(userId, updateData);
+
+      this.logger.log(`✅ Updated subscription info for user ${userId}`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to update subscription info for user ${userId}:`, error);
+      throw new DatabaseException(
+        'Failed to update user subscription info',
+        'updateUserSubscriptionInfo',
+      );
     }
   }
 }

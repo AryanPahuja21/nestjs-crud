@@ -6,6 +6,7 @@ import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { EmailModule } from '../email/email.module';
 import { PaymentModule } from '../payment/payment.module';
+import { SubscriptionModule } from '../subscription/subscription.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PaymentModule } from '../payment/payment.module';
     }),
     EmailModule,
     forwardRef(() => PaymentModule),
+    forwardRef(() => SubscriptionModule),
   ],
   controllers: [UserController],
   providers: [UserService],

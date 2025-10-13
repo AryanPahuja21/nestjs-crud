@@ -37,6 +37,22 @@ export class User {
   @Column({ nullable: true })
   stripeCustomerId?: string;
 
+  @ApiProperty({ example: 'sub_1234567890', description: 'Current Stripe Subscription ID' })
+  @Column({ nullable: true })
+  currentSubscriptionId?: string;
+
+  @ApiProperty({ example: 'active', description: 'Current subscription status' })
+  @Column({ nullable: true })
+  subscriptionStatus?: string;
+
+  @ApiProperty({ example: 'Premium Plan', description: 'Current subscription plan name' })
+  @Column({ nullable: true })
+  subscriptionPlan?: string;
+
+  @ApiProperty({ example: '2024-01-01T10:00:00Z', description: 'Subscription end date' })
+  @Column({ type: 'timestamp', nullable: true })
+  subscriptionEndDate?: Date;
+
   @ApiProperty({ example: false, description: 'Whether the user has verified their email address' })
   @Column({ type: 'boolean', default: false })
   isEmailVerified: boolean;

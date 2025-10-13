@@ -11,6 +11,7 @@ import { NotFoundCustomException } from '../../common/exceptions/not-found.excep
 import { ValidationException } from '../../common/exceptions/validation.exception';
 import { DatabaseException } from '../../common/exceptions/database.exception';
 import { UserService } from '../user/user.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class PaymentService {
@@ -23,6 +24,8 @@ export class PaymentService {
     private configService: ConfigService,
     @Inject(forwardRef(() => UserService))
     private userService: UserService,
+    @Inject(forwardRef(() => SubscriptionService))
+    private subscriptionService: SubscriptionService,
   ) {
     const secretKey = this.configService.get<string>('stripe.secretKey');
     if (!secretKey) {
@@ -222,18 +225,24 @@ export class PaymentService {
     try {
       this.logger.log(`Processing webhook event: ${event.type} (${event.id})`);
 
-      switch (event.type) {
-        case 'payment_intent.succeeded':
-          await this.handlePaymentSucceeded(event.data.object);
-          break;
-        case 'payment_intent.payment_failed':
-          await this.handlePaymentFailed(event.data.object);
-          break;
-        case 'payment_intent.created':
-          await this.handlePaymentIntentCreated(event.data.object);
-          break;
-        default:
-          this.logger.log(`Unhandled event type: ${event.type}`);
+      // Check if this is a subscription-related webhook
+      if (this.isSubscriptionWebhook(event.type)) {
+        await this.subscriptionService.handleSubscriptionWebhook(event);
+      } else {
+        // Handle payment-related webhooks
+        switch (event.type) {
+          case 'payment_intent.succeeded':
+            await this.handlePaymentSucceeded(event.data.object);
+            break;
+          case 'payment_intent.payment_failed':
+            await this.handlePaymentFailed(event.data.object);
+            break;
+          case 'payment_intent.created':
+            await this.handlePaymentIntentCreated(event.data.object);
+            break;
+          default:
+            this.logger.log(`Unhandled event type: ${event.type}`);
+        }
       }
 
       this.logger.log(`✅ Successfully processed webhook: ${event.type} (${event.id})`);
@@ -241,6 +250,25 @@ export class PaymentService {
       this.logger.error(`❌ Failed to handle webhook ${event.type} (${event.id}):`, error);
       throw error;
     }
+  }
+
+  /**
+   * Check if the webhook event is subscription-related
+   */
+  private isSubscriptionWebhook(eventType: string): boolean {
+    const subscriptionEvents = [
+      'customer.subscription.created',
+      'customer.subscription.updated',
+      'customer.subscription.deleted',
+      'customer.subscription.trial_will_end',
+      'invoice.payment_succeeded',
+      'invoice.payment_failed',
+      'invoice.created',
+      'invoice.upcoming',
+      'invoice.finalized',
+    ];
+
+    return subscriptionEvents.includes(eventType);
   }
 
   async createStripeCustomer(
