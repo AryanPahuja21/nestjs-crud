@@ -49,7 +49,7 @@ export class PaymentController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Product not found' })
   async createPaymentIntent(
-    @Request() req: { user: { sub: string } },
+    @Request() req: { user: { userId: number; username: string; role: string } },
     @Body() dto: CreatePaymentIntentDto,
   ): Promise<
     ApiResponseType<{
@@ -58,7 +58,7 @@ export class PaymentController {
       payment: PaymentResponseDto;
     }>
   > {
-    const userId = req.user.sub;
+    const userId = req.user.userId.toString();
     const result = await this.paymentService.createPaymentIntent(userId, dto);
 
     return buildSuccessResponse({
@@ -137,9 +137,9 @@ export class PaymentController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getMyPayments(
-    @Request() req: { user: { sub: string } },
+    @Request() req: { user: { userId: number; username: string; role: string } },
   ): Promise<ApiResponseType<PaymentResponseDto[]>> {
-    const userId = req.user.sub;
+    const userId = req.user.userId.toString();
     const payments = await this.paymentService.getPaymentsByUser(userId);
 
     return buildSuccessResponse(payments.map((payment) => this.mapToResponseDto(payment)));
@@ -199,9 +199,9 @@ export class PaymentController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Customer not found' })
   async getCustomerPaymentMethods(
-    @Request() req: { user: { sub: string; stripeCustomerId?: string } },
+    @Request() req: { user: { userId: number; username: string; role: string } },
   ): Promise<ApiResponseType<Stripe.PaymentMethod[]>> {
-    const userId = req.user.sub;
+    const userId = req.user.userId.toString();
 
     // Get user to find their Stripe customer ID
     const stripe = new Stripe(this.configService.get<string>('stripe.secretKey')!, {
@@ -253,10 +253,10 @@ export class PaymentController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async attachPaymentMethod(
-    @Request() req: { user: { sub: string } },
+    @Request() req: { user: { userId: number; username: string; role: string } },
     @Body() dto: AttachPaymentMethodDto,
   ): Promise<ApiResponseType<Stripe.PaymentMethod>> {
-    const userId = req.user.sub;
+    const userId = req.user.userId.toString();
 
     // Get customer ID from user
     const stripe = new Stripe(this.configService.get<string>('stripe.secretKey')!, {
@@ -346,10 +346,10 @@ export class PaymentController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async setDefaultPaymentMethod(
-    @Request() req: { user: { sub: string } },
+    @Request() req: { user: { userId: number; username: string; role: string } },
     @Body() dto: SetDefaultPaymentMethodDto,
   ): Promise<ApiResponseType<Stripe.Customer>> {
-    const userId = req.user.sub;
+    const userId = req.user.userId.toString();
 
     // Get customer ID from user
     const stripe = new Stripe(this.configService.get<string>('stripe.secretKey')!, {

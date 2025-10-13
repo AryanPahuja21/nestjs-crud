@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
@@ -10,6 +10,7 @@ import { ConfirmPaymentDto } from './dto/confirm-payment.dto';
 import { NotFoundCustomException } from '../../common/exceptions/not-found.exception';
 import { ValidationException } from '../../common/exceptions/validation.exception';
 import { DatabaseException } from '../../common/exceptions/database.exception';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class PaymentService {
@@ -20,6 +21,8 @@ export class PaymentService {
     @InjectModel(Payment.name) private paymentModel: Model<Payment>,
     @InjectModel(Product.name) private productModel: Model<Product>,
     private configService: ConfigService,
+    @Inject(forwardRef(() => UserService))
+    private userService: UserService,
   ) {
     const secretKey = this.configService.get<string>('stripe.secretKey');
     if (!secretKey) {
@@ -53,14 +56,27 @@ export class PaymentService {
       // Calculate total amount (in cents)
       const amount = Math.round(product.price * dto.quantity * 100);
 
-      // Create or get Stripe customer
-      const customer = await this.getOrCreateStripeCustomer(userId);
+      // Get user and their Stripe customer
+      const userIdNumber = parseInt(userId, 10);
+      if (isNaN(userIdNumber) || userIdNumber <= 0) {
+        throw new ValidationException(`Invalid user ID: ${userId}`);
+      }
+
+      this.logger.log(`Creating payment intent for user ${userIdNumber} (${userId})`);
+      const user = await this.userService.findOne(userIdNumber);
+      let stripeCustomerId = user.stripeCustomerId;
+
+      // If user doesn't have a Stripe customer, create one
+      if (!stripeCustomerId) {
+        this.logger.log(`User ${userId} doesn't have Stripe customer, creating one...`);
+        stripeCustomerId = await this.userService.createStripeCustomerForUser(user.id);
+      }
 
       // Create payment intent in Stripe
       const paymentIntent = await this.stripe.paymentIntents.create({
         amount,
         currency: dto.currency || 'usd',
-        customer: customer.id,
+        customer: stripeCustomerId,
         metadata: {
           userId,
           productId: dto.productId,
@@ -78,7 +94,7 @@ export class PaymentService {
         userId: new Types.ObjectId(userId),
         productId: new Types.ObjectId(dto.productId),
         stripePaymentIntentId: paymentIntent.id,
-        stripeCustomerId: customer.id,
+        stripeCustomerId: stripeCustomerId,
         amount,
         currency: dto.currency || 'usd',
         status: PaymentStatus.PENDING,
@@ -172,6 +188,8 @@ export class PaymentService {
 
   async handleWebhook(event: Stripe.Event): Promise<void> {
     try {
+      this.logger.log(`Processing webhook event: ${event.type} (${event.id})`);
+
       switch (event.type) {
         case 'payment_intent.succeeded':
           await this.handlePaymentSucceeded(event.data.object);
@@ -185,8 +203,10 @@ export class PaymentService {
         default:
           this.logger.log(`Unhandled event type: ${event.type}`);
       }
+
+      this.logger.log(`✅ Successfully processed webhook: ${event.type} (${event.id})`);
     } catch (error) {
-      this.logger.error('Failed to handle webhook', error);
+      this.logger.error(`❌ Failed to handle webhook ${event.type} (${event.id}):`, error);
       throw error;
     }
   }
@@ -362,15 +382,24 @@ export class PaymentService {
   }
 
   private async handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent): Promise<void> {
+    this.logger.log(`Processing payment success for intent: ${paymentIntent.id}`);
+
     const payment = await this.paymentModel.findOne({
       stripePaymentIntentId: paymentIntent.id,
     });
 
-    if (payment) {
+    if (!payment) {
+      this.logger.warn(`Payment not found for intent: ${paymentIntent.id}`);
+      return;
+    }
+
+    try {
       payment.status = PaymentStatus.SUCCEEDED;
       payment.paidAt = new Date();
       payment.paymentMethodDetails = { paymentMethods: paymentIntent.payment_method_types || [] };
       await payment.save();
+
+      this.logger.log(`✅ Updated payment ${String(payment._id)} status to SUCCEEDED`);
 
       // Update product stock if not already done
       if (payment.metadata?.quantity) {
@@ -378,19 +407,41 @@ export class PaymentService {
           payment.productId.toString(),
           parseInt(payment.metadata.quantity as string),
         );
+        this.logger.log(`✅ Updated product stock for ${String(payment.productId)}`);
       }
+    } catch (error) {
+      this.logger.error(
+        `Failed to update payment ${String(payment._id)}:`,
+        error instanceof Error ? error.message : String(error),
+      );
+      throw error;
     }
   }
 
   private async handlePaymentFailed(paymentIntent: Stripe.PaymentIntent): Promise<void> {
+    this.logger.log(`Processing payment failure for intent: ${paymentIntent.id}`);
+
     const payment = await this.paymentModel.findOne({
       stripePaymentIntentId: paymentIntent.id,
     });
 
-    if (payment) {
+    if (!payment) {
+      this.logger.warn(`Payment not found for intent: ${paymentIntent.id}`);
+      return;
+    }
+
+    try {
       payment.status = PaymentStatus.FAILED;
       payment.failureReason = paymentIntent.last_payment_error?.message || 'Payment failed';
       await payment.save();
+
+      this.logger.log(`✅ Updated payment ${String(payment._id)} status to FAILED`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to update payment ${String(payment._id)}:`,
+        error instanceof Error ? error.message : String(error),
+      );
+      throw error;
     }
   }
 
