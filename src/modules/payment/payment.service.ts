@@ -191,9 +191,137 @@ export class PaymentService {
     }
   }
 
+  async createStripeCustomer(
+    userId: string,
+    email: string,
+    name: string,
+  ): Promise<Stripe.Customer> {
+    try {
+      const customer = await this.stripe.customers.create({
+        email,
+        name,
+        metadata: {
+          userId,
+          source: 'user_registration',
+        },
+        description: `Customer for user ID: ${userId}`,
+      });
+
+      this.logger.log(`Created Stripe customer ${customer.id} for user ${userId}`);
+      return customer;
+    } catch (error) {
+      this.logger.error('Failed to create Stripe customer', error);
+      throw new DatabaseException('Failed to create customer', 'createStripeCustomer');
+    }
+  }
+
+  async getStripeCustomer(customerId: string): Promise<Stripe.Customer> {
+    try {
+      const customer = await this.stripe.customers.retrieve(customerId);
+      if (customer.deleted) {
+        throw new NotFoundCustomException('Customer', customerId);
+      }
+      return customer as Stripe.Customer;
+    } catch (error) {
+      this.logger.error('Failed to retrieve Stripe customer', error);
+      if (error instanceof NotFoundCustomException) {
+        throw error;
+      }
+      throw new DatabaseException('Failed to retrieve customer', 'getStripeCustomer');
+    }
+  }
+
+  async updateStripeCustomer(
+    customerId: string,
+    updates: { email?: string; name?: string; metadata?: Record<string, string> },
+  ): Promise<Stripe.Customer> {
+    try {
+      const customer = await this.stripe.customers.update(customerId, updates);
+      this.logger.log(`Updated Stripe customer ${customerId}`);
+      return customer;
+    } catch (error) {
+      this.logger.error('Failed to update Stripe customer', error);
+      throw new DatabaseException('Failed to update customer', 'updateStripeCustomer');
+    }
+  }
+
+  async deleteStripeCustomer(customerId: string): Promise<void> {
+    try {
+      await this.stripe.customers.del(customerId);
+      this.logger.log(`Deleted Stripe customer ${customerId}`);
+    } catch (error) {
+      this.logger.error('Failed to delete Stripe customer', error);
+      throw new DatabaseException('Failed to delete customer', 'deleteStripeCustomer');
+    }
+  }
+
+  async attachPaymentMethod(
+    customerId: string,
+    paymentMethodId: string,
+  ): Promise<Stripe.PaymentMethod> {
+    try {
+      const paymentMethod = await this.stripe.paymentMethods.attach(paymentMethodId, {
+        customer: customerId,
+      });
+      this.logger.log(`Attached payment method ${paymentMethodId} to customer ${customerId}`);
+      return paymentMethod;
+    } catch (error) {
+      this.logger.error('Failed to attach payment method', error);
+      throw new DatabaseException('Failed to attach payment method', 'attachPaymentMethod');
+    }
+  }
+
+  async detachPaymentMethod(paymentMethodId: string): Promise<Stripe.PaymentMethod> {
+    try {
+      const paymentMethod = await this.stripe.paymentMethods.detach(paymentMethodId);
+      this.logger.log(`Detached payment method ${paymentMethodId}`);
+      return paymentMethod;
+    } catch (error) {
+      this.logger.error('Failed to detach payment method', error);
+      throw new DatabaseException('Failed to detach payment method', 'detachPaymentMethod');
+    }
+  }
+
+  async getCustomerPaymentMethods(customerId: string): Promise<Stripe.PaymentMethod[]> {
+    try {
+      const paymentMethods = await this.stripe.paymentMethods.list({
+        customer: customerId,
+        type: 'card',
+      });
+      return paymentMethods.data;
+    } catch (error) {
+      this.logger.error('Failed to retrieve customer payment methods', error);
+      throw new DatabaseException(
+        'Failed to retrieve payment methods',
+        'getCustomerPaymentMethods',
+      );
+    }
+  }
+
+  async setDefaultPaymentMethod(
+    customerId: string,
+    paymentMethodId: string,
+  ): Promise<Stripe.Customer> {
+    try {
+      const customer = await this.stripe.customers.update(customerId, {
+        invoice_settings: {
+          default_payment_method: paymentMethodId,
+        },
+      });
+      this.logger.log(`Set default payment method ${paymentMethodId} for customer ${customerId}`);
+      return customer;
+    } catch (error) {
+      this.logger.error('Failed to set default payment method', error);
+      throw new DatabaseException(
+        'Failed to set default payment method',
+        'setDefaultPaymentMethod',
+      );
+    }
+  }
+
   private async getOrCreateStripeCustomer(userId: string): Promise<Stripe.Customer> {
-    // This would typically fetch user details from your user service
-    // For now, we'll create a simple customer
+    // This method is now deprecated in favor of the new customer management methods
+    // It's kept for backward compatibility with existing payment flows
     try {
       const customer = await this.stripe.customers.create({
         metadata: { userId },

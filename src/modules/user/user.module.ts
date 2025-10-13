@@ -1,10 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { User } from '../../database/entities/user.entity';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { EmailModule } from '../email/email.module';
+import { PaymentModule } from '../payment/payment.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { EmailModule } from '../email/email.module';
       signOptions: { expiresIn: '1h' },
     }),
     EmailModule,
+    forwardRef(() => PaymentModule),
   ],
   controllers: [UserController],
   providers: [UserService],

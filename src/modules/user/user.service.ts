@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryFailedError } from 'typeorm';
 import { User } from '../../database/entities/user.entity';
@@ -8,14 +8,19 @@ import { NotFoundCustomException } from '../../common/exceptions/not-found.excep
 import { DuplicateResourceException } from '../../common/exceptions/duplicate-resource.exception';
 import { ValidationException } from '../../common/exceptions/validation.exception';
 import { DatabaseException } from '../../common/exceptions/database.exception';
+import { PaymentService } from '../payment/payment.service';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @Inject(forwardRef(() => PaymentService))
+    private readonly paymentService: PaymentService,
   ) {}
 
   async create(dto: CreateUserDto): Promise<User> {
@@ -35,7 +40,30 @@ export class UserService {
         ...dto,
         password: hashedPassword,
       });
-      return await this.userRepo.save(user);
+
+      // Save user first to get the ID
+      const savedUser = await this.userRepo.save(user);
+
+      try {
+        // Create Stripe customer
+        const stripeCustomer = await this.paymentService.createStripeCustomer(
+          savedUser.id.toString(),
+          savedUser.email,
+          savedUser.name,
+        );
+
+        // Update user with Stripe customer ID
+        savedUser.stripeCustomerId = stripeCustomer.id;
+        await this.userRepo.save(savedUser);
+
+        this.logger.log(`Created user ${savedUser.id} with Stripe customer ${stripeCustomer.id}`);
+      } catch (stripeError) {
+        this.logger.error('Failed to create Stripe customer, but user was created', stripeError);
+        // Don't fail user creation if Stripe fails - they can be created later
+        // In production, you might want to queue this for retry
+      }
+
+      return savedUser;
     } catch (error) {
       if (error instanceof DuplicateResourceException || error instanceof ValidationException) {
         throw error;
@@ -81,7 +109,7 @@ export class UserService {
     }
 
     try {
-      await this.findOne(id); // This will throw if user doesn't exist
+      const existingUser = await this.findOne(id); // This will throw if user doesn't exist
 
       const updateData = { ...dto };
       if (dto.password) {
@@ -90,14 +118,33 @@ export class UserService {
 
       // Check for email uniqueness if email is being updated
       if (dto.email) {
-        const existingUser = await this.userRepo.findOne({ where: { email: dto.email } });
-        if (existingUser && existingUser.id !== id) {
+        const existingUserWithEmail = await this.userRepo.findOne({ where: { email: dto.email } });
+        if (existingUserWithEmail && existingUserWithEmail.id !== id) {
           throw new DuplicateResourceException('User', 'email', dto.email);
         }
       }
 
       await this.userRepo.update(id, updateData);
-      return this.findOne(id);
+      const updatedUser = await this.findOne(id);
+
+      // Update Stripe customer info if email or name changed and user has a Stripe customer
+      if (existingUser.stripeCustomerId && (dto.email || dto.name)) {
+        try {
+          const stripeUpdates: { email?: string; name?: string } = {};
+          if (dto.email) stripeUpdates.email = dto.email;
+          if (dto.name) stripeUpdates.name = dto.name;
+
+          await this.updateUserStripeInfo(id, stripeUpdates);
+        } catch (stripeError) {
+          this.logger.error(
+            'Failed to update Stripe customer info, but user was updated',
+            stripeError,
+          );
+          // Don't fail user update if Stripe update fails
+        }
+      }
+
+      return updatedUser;
     } catch (error) {
       if (
         error instanceof NotFoundCustomException ||
@@ -116,7 +163,21 @@ export class UserService {
     }
 
     try {
-      await this.findOne(id); // This will throw if user doesn't exist
+      const user = await this.findOne(id); // This will throw if user doesn't exist
+
+      // Delete Stripe customer if exists
+      if (user.stripeCustomerId) {
+        try {
+          await this.deleteUserStripeCustomer(id);
+        } catch (stripeError) {
+          this.logger.error(
+            'Failed to delete Stripe customer, but continuing with user deletion',
+            stripeError,
+          );
+          // Don't fail user deletion if Stripe deletion fails
+        }
+      }
+
       await this.userRepo.delete(id);
     } catch (error) {
       if (error instanceof NotFoundCustomException || error instanceof ValidationException) {
@@ -202,6 +263,82 @@ export class UserService {
         throw error;
       }
       throw new DatabaseException('Failed to process resend request', 'resendVerification');
+    }
+  }
+
+  async createStripeCustomerForUser(userId: number): Promise<string> {
+    try {
+      const user = await this.findOne(userId);
+
+      if (user.stripeCustomerId) {
+        this.logger.warn(`User ${userId} already has Stripe customer ${user.stripeCustomerId}`);
+        return user.stripeCustomerId;
+      }
+
+      const stripeCustomer = await this.paymentService.createStripeCustomer(
+        user.id.toString(),
+        user.email,
+        user.name,
+      );
+
+      // Update user with Stripe customer ID
+      await this.userRepo.update(userId, { stripeCustomerId: stripeCustomer.id });
+
+      this.logger.log(`Created Stripe customer ${stripeCustomer.id} for existing user ${userId}`);
+      return stripeCustomer.id;
+    } catch (error) {
+      if (error instanceof NotFoundCustomException) {
+        throw error;
+      }
+      throw new DatabaseException(
+        'Failed to create Stripe customer for user',
+        'createStripeCustomerForUser',
+      );
+    }
+  }
+
+  async updateUserStripeInfo(
+    userId: number,
+    updates: { email?: string; name?: string },
+  ): Promise<void> {
+    try {
+      const user = await this.findOne(userId);
+
+      if (!user.stripeCustomerId) {
+        this.logger.warn(`User ${userId} does not have a Stripe customer ID`);
+        return;
+      }
+
+      await this.paymentService.updateStripeCustomer(user.stripeCustomerId, updates);
+      this.logger.log(`Updated Stripe customer ${user.stripeCustomerId} for user ${userId}`);
+    } catch (error) {
+      if (error instanceof NotFoundCustomException) {
+        throw error;
+      }
+      throw new DatabaseException('Failed to update Stripe customer info', 'updateUserStripeInfo');
+    }
+  }
+
+  async deleteUserStripeCustomer(userId: number): Promise<void> {
+    try {
+      const user = await this.findOne(userId);
+
+      if (!user.stripeCustomerId) {
+        this.logger.warn(`User ${userId} does not have a Stripe customer ID`);
+        return;
+      }
+
+      await this.paymentService.deleteStripeCustomer(user.stripeCustomerId);
+
+      // Remove Stripe customer ID from user
+      await this.userRepo.update(userId, { stripeCustomerId: undefined });
+
+      this.logger.log(`Deleted Stripe customer for user ${userId}`);
+    } catch (error) {
+      if (error instanceof NotFoundCustomException) {
+        throw error;
+      }
+      throw new DatabaseException('Failed to delete Stripe customer', 'deleteUserStripeCustomer');
     }
   }
 }
