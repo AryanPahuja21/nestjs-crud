@@ -297,6 +297,19 @@ export class UserService {
     }
   }
 
+  async updateStripeCustomerId(userId: number, stripeCustomerId: string): Promise<void> {
+    try {
+      await this.userRepo.update(userId, { stripeCustomerId });
+      this.logger.log(`Updated user ${userId} with Stripe customer ID ${stripeCustomerId}`);
+    } catch (error) {
+      this.logger.error(`Failed to update user ${userId} with Stripe customer ID`, error);
+      throw new DatabaseException(
+        'Failed to update user Stripe customer ID',
+        'updateStripeCustomerId',
+      );
+    }
+  }
+
   async updateUserStripeInfo(
     userId: number,
     updates: { email?: string; name?: string },

@@ -18,9 +18,9 @@ export enum PaymentType {
 
 @Schema({ timestamps: true })
 export class Payment extends Document {
-  @ApiProperty({ example: '60d0fe4f5311236168a109ca', description: 'User ID' })
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  userId: Types.ObjectId;
+  @ApiProperty({ example: '123', description: 'User ID from MySQL' })
+  @Prop({ type: String, required: true })
+  userId: string;
 
   @ApiProperty({ example: '60d0fe4f5311236168a109cb', description: 'Product ID' })
   @Prop({ type: Types.ObjectId, ref: 'Product', required: true })

@@ -66,10 +66,42 @@ export class PaymentService {
       const user = await this.userService.findOne(userIdNumber);
       let stripeCustomerId = user.stripeCustomerId;
 
-      // If user doesn't have a Stripe customer, create one
+      // If user doesn't have a Stripe customer, try to find existing one or create new
       if (!stripeCustomerId) {
-        this.logger.log(`User ${userId} doesn't have Stripe customer, creating one...`);
-        stripeCustomerId = await this.userService.createStripeCustomerForUser(user.id);
+        this.logger.log(
+          `User ${userId} doesn't have Stripe customer, searching for existing one...`,
+        );
+
+        // First, try to find existing customer by email
+        try {
+          const existingCustomers = await this.stripe.customers.list({
+            email: user.email,
+            limit: 1,
+          });
+
+          if (existingCustomers.data.length > 0) {
+            const existingCustomer = existingCustomers.data[0];
+            this.logger.log(
+              `Found existing Stripe customer ${existingCustomer.id} for user ${userId}`,
+            );
+
+            // Update user record with found customer ID
+            user.stripeCustomerId = existingCustomer.id;
+            // Save the updated user back to database (we'll create a method for this)
+            await this.userService.updateStripeCustomerId(user.id, existingCustomer.id);
+            stripeCustomerId = existingCustomer.id;
+          } else {
+            // No existing customer found, create new one
+            this.logger.log(`No existing customer found, creating new one for user ${userId}...`);
+            stripeCustomerId = await this.userService.createStripeCustomerForUser(user.id);
+          }
+        } catch (error) {
+          this.logger.error(
+            `Error searching for existing customer: ${error instanceof Error ? error.message : String(error)}`,
+          );
+          // Fallback to creating new customer
+          stripeCustomerId = await this.userService.createStripeCustomerForUser(user.id);
+        }
       }
 
       // Create payment intent in Stripe
@@ -91,7 +123,7 @@ export class PaymentService {
 
       // Save payment record to database
       const payment = new this.paymentModel({
-        userId: new Types.ObjectId(userId),
+        userId: userId, // Store as string since it's a MySQL user ID, not MongoDB ObjectId
         productId: new Types.ObjectId(dto.productId),
         stripePaymentIntentId: paymentIntent.id,
         stripeCustomerId: stripeCustomerId,
@@ -158,7 +190,7 @@ export class PaymentService {
   async getPaymentsByUser(userId: string): Promise<Payment[]> {
     try {
       return await this.paymentModel
-        .find({ userId: new Types.ObjectId(userId) })
+        .find({ userId: userId }) // userId is now stored as string
         .populate('productId')
         .sort({ createdAt: -1 })
         .exec();
