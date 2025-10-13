@@ -232,11 +232,17 @@ export class SubscriptionService {
 
       const subscription = await this.subscriptionModel.findOne({
         userId,
-        status: { $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING] },
+        status: {
+          $in: [
+            SubscriptionStatus.ACTIVE,
+            SubscriptionStatus.TRIALING,
+            SubscriptionStatus.INCOMPLETE,
+          ],
+        },
       });
 
       if (!subscription) {
-        throw new NotFoundCustomException('Active subscription not found for user');
+        throw new NotFoundCustomException('Active or incomplete subscription not found for user');
       }
 
       const updateData: any = {};
@@ -280,6 +286,35 @@ export class SubscriptionService {
         await this.stripe.subscriptions.update(subscription.stripeSubscriptionId, {
           default_payment_method: dto.paymentMethodId,
         });
+      }
+
+      // Handle test card payment if requested
+      if (dto.useTestCard) {
+        this.logger.log(
+          `Using test card to complete payment for subscription ${subscription.stripeSubscriptionId}`,
+        );
+
+        // Create a test payment method using a test token
+        const testPaymentMethod = await this.stripe.paymentMethods.create({
+          type: 'card',
+          card: {
+            token: 'tok_visa', // Use Stripe's test token
+          },
+        });
+
+        // Attach payment method to customer
+        await this.stripe.paymentMethods.attach(testPaymentMethod.id, {
+          customer: subscription.stripeCustomerId,
+        });
+
+        // Update subscription with payment method
+        await this.stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+          default_payment_method: testPaymentMethod.id,
+        });
+
+        this.logger.log(
+          `✅ Test payment method attached to subscription ${subscription.stripeSubscriptionId}`,
+        );
       }
 
       // Update metadata if provided
@@ -394,6 +429,120 @@ export class SubscriptionService {
       }
       throw new DatabaseException(
         `Failed to cancel subscription: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Complete subscription payment with test card (for testing purposes)
+   */
+  async completeTestPayment(userId: string): Promise<SubscriptionResponseDto> {
+    try {
+      this.logger.log(`Completing test payment for user ${userId}`);
+
+      // Get user's current subscription
+      const subscription = await this.subscriptionModel
+        .findOne({
+          userId,
+          status: { $in: [SubscriptionStatus.INCOMPLETE, SubscriptionStatus.ACTIVE] },
+        })
+        .sort({ createdAt: -1 });
+
+      if (!subscription) {
+        throw new NotFoundCustomException('Active or incomplete subscription not found for user');
+      }
+
+      // Get the subscription from Stripe
+      const stripeSubscription = await this.stripe.subscriptions.retrieve(
+        subscription.stripeSubscriptionId,
+        { expand: ['latest_invoice.payment_intent'] },
+      );
+
+      if (stripeSubscription.status === 'active') {
+        this.logger.log(`Subscription ${subscription.stripeSubscriptionId} is already active`);
+        return this.mapToResponseDto(subscription);
+      }
+
+      // Create a test payment method using a test token
+      const testPaymentMethod = await this.stripe.paymentMethods.create({
+        type: 'card',
+        card: {
+          token: 'tok_visa', // Use Stripe's test token
+        },
+      });
+
+      // Attach payment method to customer
+      await this.stripe.paymentMethods.attach(testPaymentMethod.id, {
+        customer: subscription.stripeCustomerId,
+      });
+
+      // Update subscription with payment method
+      const updatedStripeSubscription = await this.stripe.subscriptions.update(
+        subscription.stripeSubscriptionId,
+        {
+          default_payment_method: testPaymentMethod.id,
+        },
+      );
+
+      // If there's a payment intent that needs confirmation, confirm it
+      if (
+        stripeSubscription.latest_invoice &&
+        typeof stripeSubscription.latest_invoice === 'object'
+      ) {
+        const invoice = stripeSubscription.latest_invoice as any;
+        if (
+          invoice.payment_intent &&
+          typeof invoice.payment_intent === 'object' &&
+          invoice.payment_intent.status === 'requires_payment_method'
+        ) {
+          await this.stripe.paymentIntents.confirm(invoice.payment_intent.id, {
+            payment_method: testPaymentMethod.id,
+          });
+        }
+      }
+
+      // Update local subscription record
+      const updatedSubscription = await this.subscriptionModel.findByIdAndUpdate(
+        subscription._id,
+        {
+          status: updatedStripeSubscription.status as SubscriptionStatus,
+          currentPeriodStart: (updatedStripeSubscription as any).current_period_start
+            ? new Date(((updatedStripeSubscription as any).current_period_start as number) * 1000)
+            : undefined,
+          currentPeriodEnd: (updatedStripeSubscription as any).current_period_end
+            ? new Date(((updatedStripeSubscription as any).current_period_end as number) * 1000)
+            : undefined,
+        },
+        { new: true },
+      );
+
+      if (!updatedSubscription) {
+        throw new DatabaseException('Failed to update subscription');
+      }
+
+      // Update user's subscription info
+      const userIdNumber = parseInt(userId, 10);
+      await this.userService.updateUserSubscriptionInfo(userIdNumber, {
+        subscriptionId: updatedStripeSubscription.id,
+        subscriptionStatus: updatedStripeSubscription.status,
+        subscriptionPlan: subscription.productName,
+        subscriptionEndDate: (updatedStripeSubscription as any).current_period_end
+          ? new Date(((updatedStripeSubscription as any).current_period_end as number) * 1000)
+          : undefined,
+      });
+
+      this.logger.log(
+        `✅ Completed test payment for subscription ${subscription.stripeSubscriptionId}`,
+      );
+
+      return this.mapToResponseDto(updatedSubscription);
+    } catch (error) {
+      this.logger.error(`❌ Failed to complete test payment for user ${userId}:`, error);
+      if (error instanceof NotFoundCustomException) {
+        throw error;
+      }
+      throw new DatabaseException(
+        `Failed to complete test payment: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }

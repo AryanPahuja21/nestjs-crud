@@ -23,7 +23,7 @@ export enum SubscriptionInterval {
 @Schema({ timestamps: true })
 export class Subscription extends Document {
   @ApiProperty({ example: '123', description: 'User ID from MySQL' })
-  @Prop({ type: String, required: true, unique: true })
+  @Prop({ type: String, required: true })
   userId: string;
 
   @ApiProperty({ example: 'sub_1234567890', description: 'Stripe Subscription ID' })
